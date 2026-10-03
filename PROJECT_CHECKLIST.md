@@ -8,7 +8,7 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 - [x] Scaffold a TypeScript web app with pinned dependencies, `.env.example`, README, and architecture notes (originally Next.js; now Vite + SpacetimeDB).
 - [x] Store cases so repeated scans never duplicate them (originally SQLite with a unique transaction ID; now one case per owner and transaction in SpacetimeDB).
 - [x] Define case, transaction, medical record, bill item, finding, communication, resolution, timeline, and audit types.
-- [x] Detect likely healthcare purchases with deterministic merchant/category rules.
+- [x] Detect likely healthcare purchases with deterministic merchant/category rules. (Kept only in the unused reference `src/services/banking/provider.ts`; the SpacetimeDB demo opens its seeded case without detection.)
 - [x] Provide mock bank, medical record, and communication adapters; demo mode makes no hospital, bank, or EHR calls.
 - [x] Seed the University Hospital $4,820 payment, five supporting clinical records, and six itemized charges.
 - [x] Match a payment to a nearby encounter using provider name and date.
@@ -30,7 +30,7 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 - [x] Show separate bill-request and bill-received timeline events and resume a case after a delayed mock bill arrives.
 - [x] Show the audit log and stored communication transcript in the case UI.
 - [x] Show clinical evidence and financial review separately; price review remains **not assessed** until a trustworthy reference source is connected.
-- [x] Run the complete synthetic flow through the API in 1.1 seconds and through the UI in 19 seconds, within the two-minute demo target.
+- [x] Run the complete synthetic flow within the two-minute demo target (measured before the migration: 1.1 s through the old API, 19 s through the UI; the bill now arrives about 2 s after investigation).
 
 ## Complete: SpacetimeDB migration (hackathon track)
 
@@ -47,7 +47,7 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 - [x] Install the Relay CLI as an exact, project-local dependency and create the staging `medical_bill_guardian` agent without committing its token.
 - [ ] Implement and test a Relay `CommunicationProvider` for a participating provider handle, and handle asynchronous billing responses. The documented call feature reaches a Relay chat participant; ordinary hospital phone dialing is not established.
 - [x] Validate Nessie sandbox credentials and create one synthetic customer, checking account, University Hospital merchant, and $4,820 purchase. Confirm the account/purchase/merchant read path used by the adapter; IDs stay in the ignored `.env`.
-- [ ] Connect the synthetic Nessie purchase to a case through a protected, authenticated live workflow; the current app deliberately blocks live case routes.
+- [ ] Connect the synthetic Nessie purchase to a case through a protected, authenticated live workflow; the SpacetimeDB module deliberately contains only mock providers.
 - [x] Validate the FinchNode sandbox key and app categories, attempt synthetic Connect sessions, and test normalized record field mapping against FinchNode's public synthetic API.
 - [ ] Complete a FinchNode sandbox Connect simulation and save its app-scoped subject. Two sessions remain in `syncing` with no subject exposed by `GET /users`; retry after the sandbox service completes them.
 - [ ] Build the FinchNode patient Connect/consent flow, validate its live response shape, and normalize all relevant authorized record categories.

@@ -37,7 +37,7 @@ Unchanged by the migration and not wired into the app. **Nessie:** a synthetic c
 
 ## Resume priorities
 
-1. Publish the module to Maincloud and deploy the frontend to Cloudflare (plan Task 5); each needs the user's explicit yes.
+1. Publish the module to Maincloud and deploy the frontend to Cloudflare (plan Task 5); each needs the user's explicit yes. `spacetime.json` defaults to the `local` server so a bare `spacetime publish` never reaches Maincloud — pass `-s maincloud` explicitly when publishing.
 2. Recheck the FinchNode Connect simulation; keep the demo on mocks if it is still stalled.
 3. Before any live data: identity, consent, protected storage, retention/deletion, and a live communication adapter (likely a SpacetimeDB procedure, which can make HTTP calls).
 4. Real statement parsing and stronger encounter matching; never invent fair prices or claim savings before provider confirmation.

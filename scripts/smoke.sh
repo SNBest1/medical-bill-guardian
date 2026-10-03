@@ -30,7 +30,11 @@ spacetime call -y -s "$SERVER" --anonymous "$DB" authorize_review 1 2>/dev/null 
 # Expected failures exit non-zero, so capture the output before searching it (pipefail would mask a match).
 denied=$(spacetime sql -y -s "$SERVER" --anonymous "$DB" "SELECT * FROM bill_case" 2>&1 || true)
 grep -q "may be marked private" <<<"$denied" || fail "private table visible to a stranger"
-spacetime sql -y -s "$SERVER" --anonymous "$DB" "SELECT * FROM my_cases" 2>/dev/null | grep -q CASE-4821 && fail "a stranger's view shows the owner's case"
+# Positive control: the owner's view shows the case, so an empty stranger view means isolation, not a broken query.
+sql "SELECT * FROM my_cases" | grep -q CASE-4821 || fail "owner's view does not show the case"
+stranger_view=$(spacetime sql -y -s "$SERVER" --anonymous "$DB" "SELECT * FROM my_cases" 2>&1) || fail "stranger's view query failed: $stranger_view"
+grep -q CASE-4821 <<<"$stranger_view" && fail "a stranger's view shows the owner's case"
+spacetime call -y -s "$SERVER" --anonymous "$DB" investigate_case 1 2>/dev/null && fail "a stranger investigated the case"
 # A client must not be able to force the scheduled bill delivery.
 forced=$(call deliver_bill '{"scheduled_id":99,"scheduled_at":{"Time":{"__timestamp_micros_since_unix_epoch__":0}},"case_id":1}' 2>&1 || true)
 grep -q "only be run by the scheduler" <<<"$forced" || fail "a client called deliver_bill"

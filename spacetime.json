@@ -1,1 +1,1 @@
-{ "module-path": "./spacetimedb", "server": "maincloud" }
+{ "module-path": "./spacetimedb", "server": "local" }
