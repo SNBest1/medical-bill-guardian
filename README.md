@@ -24,7 +24,7 @@ Requires Node.js 22 or later.
 
 ```bash
 npm ci
-cp .env.example .env.local
+cp .env.example .env
 npm run dev
 ```
 
@@ -44,7 +44,7 @@ Run checks with `npm test`, `npm run typecheck`, and `npm run build`.
 
 ## Integration configuration
 
-Copy `.env.example` for all variables. Nessie needs a sandbox API key, customer ID, and the HTTPS base URL supplied for the hackathon. The adapter reads account purchases and resolves merchant IDs to merchant names. FinchNode needs a server-side API key and a subject from a completed patient Connect consent flow; it uses the [consent-filtered records endpoint](https://finchnode.com/products/records-api). Relay/Photon is behind `CommunicationProvider`, but the exact live API contract is still required before an adapter can safely place calls. No credential belongs in source control.
+Copy `.env.example` to `.env` for local configuration; both `.env` and `.env.local` are ignored by Git. Nessie needs a sandbox API key, customer ID, and the HTTPS base URL supplied for the hackathon. The adapter reads account purchases and resolves merchant IDs to merchant names. FinchNode needs a server-side API key and a subject from a completed patient Connect consent flow; it uses the [consent-filtered records endpoint](https://finchnode.com/products/records-api). The [Relay staging API](https://docs.staging.relayapp.im/api-reference/overview) uses a server-side Agent Token and Relay handles. Its documented calls reach people in Relay chats, so a participating provider handle is needed; this does not establish ordinary hospital phone dialing. The Relay adapter has not been implemented or enabled. No credential belongs in source control.
 
 ## API
 
