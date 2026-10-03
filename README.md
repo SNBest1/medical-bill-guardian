@@ -1,55 +1,72 @@
 # Medical Bill Guardian
 
-Medical Bill Guardian is a local-first hackathon web app that opens a case when a healthcare payment appears, compares an itemized bill with available medical evidence, and asks the patient before contacting billing. Its built-in demo completes the University Hospital story with no hospital, bank, or medical-record API calls.
+Medical Bill Guardian opens a case when a hospital payment appears, compares the itemized bill with available medical evidence, and asks the patient before contacting billing. The backend is a SpacetimeDB module; the built-in demo runs the synthetic University Hospital story with no hospital, bank, or medical-record API calls.
 
 ## Architecture
 
 ```text
-Nessie / mock bank → transaction scan → SQLite MedicalBillCase
-                                          ↓
-                  FinchNode / mock records + Relay/Photon / mock bill
-                                          ↓
-                 deterministic reconciliation → review authorization
-                                          ↓
-                  provider response → summary → in-app notification
+ Browser (React + Vite, Cloudflare Workers static assets)
+   │  subscribes to per-user views: my_cases, my_timeline, ...   ◄── live pushes
+   │  calls reducers: scan_demo_payment, investigate_case,
+   │                  authorize_review, reset_demo
+   ▼
+ SpacetimeDB module (TypeScript, spacetimedb/)
+   ├─ private tables: bill_case, medical_record, bill_item, finding,
+   │                  timeline_event, audit_entry, communication
+   ├─ public views filtered by ctx.sender (the case owner)
+   ├─ reducers: the case state machine
+   ├─ schedule table bill_delivery → deliver_bill (~2 s after investigation)
+   └─ pure logic (spacetimedb/src/logic): parse, match, reconcile, summarize
 ```
 
-Next.js route handlers own case transitions and persistence. Provider interfaces keep the bank, medical-record, and communications sources replaceable. The reconciliation engine decides evidence status from structured data; an optional OpenAI Responses call can rephrase a verified result through one read-only `get_case_facts` tool. The model cannot invoke provider APIs or change financial outcomes.
+SpacetimeDB is the whole backend. Each case is stored as rows across private tables; reducers move it through `DETECTED → WAITING_FOR_BILL → REVIEW_REQUIRED → USER_NOTIFIED`, and every step writes an audit entry and a timeline event. Clients can read only through views filtered by their own identity, so each browser gets its own private demo case. The mock hospital's statement arrives from a scheduled reducer about two seconds after investigation, and every subscribed tab updates live — there is no polling.
 
-SQLite stores case JSON, timeline events, audit entries, and communication outcomes in `data/guardian.sqlite`. The `data/` directory is ignored by Git because cases can contain medical information. There is no user authentication or encryption layer; use synthetic data only.
+The billing logic in `spacetimedb/src/logic/` is plain TypeScript with no SpacetimeDB imports, so Vitest tests it directly. Money is stored as integer cents. The React client reassembles view rows into the display model in `src/lib/assemble.ts`.
 
 ## Quick start
 
-Requires Node.js 22 or later.
+Requires Node.js 22+ and the SpacetimeDB CLI (`curl -sSf https://install.spacetimedb.com | sh`).
 
 ```bash
 npm ci
-cp .env.example .env
+npm ci --prefix spacetimedb
+cp .env.example .env.local
+spacetime start
+```
+
+In a second terminal:
+
+```bash
+spacetime publish -s local --module-path spacetimedb medical-bill-guardian
+npm run spacetime:generate
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Demo mode is on by default and scans the seeded payment when the dashboard loads. Open the University Hospital case and click **Investigate this bill**. The mock provider delivers a plain-text statement after a short delay; the case parses it and compares six charges with the available records. Inspect the $700 specialist item, then click **Authorize billing review**. The mock provider confirms that charge duplicated services already included in the ER charge, and the app records the $4,120 corrected total. Expand **Activity and communications** to inspect tool steps and mock exchanges. Repeating a scan returns the same case because transaction IDs are unique.
+Open [http://localhost:5173](http://localhost:5173). Your demo case appears automatically. Open it and click **Investigate this bill**: records appear at once, and the itemized bill arrives about two seconds later. Inspect the $700 specialist item, then click **Authorize billing review**. The mock provider confirms that charge duplicated services already included in the ER charge, and the case records the $4,120 corrected total. **Restart demo** replays the case from payment detection. A second browser profile or private window gets its own separate case.
 
-Use **Restart demo** below a completed case summary to replay the case from payment detection.
+Checks:
 
-Run checks with `npm test`, `npm run typecheck`, and `npm run build`.
+```bash
+npm test
+npm run typecheck
+npm run build
+npm run smoke
+```
+
+`npm run smoke` starts a throwaway SpacetimeDB server on port 3100 and runs the full story, including checks that a stranger cannot read or act on someone else's case and that a client cannot force the scheduled bill delivery.
 
 ## Demo safety and scope
 
 - A missing clinical match means **needs review**. It never proves the charge is invalid or fraudulent.
 - The $700 correction is shown only after the mock hospital response confirms it. Price benchmarking is deliberately not claimed.
-- The authorization button is required before the mock billing review. No bank chargeback is initiated.
-- `DEMO_MODE=true` makes zero external bank, EHR, or hospital calls. If `OPENAI_API_KEY` is set, only structured synthetic case facts are sent to OpenAI for the optional summary; omit the key to keep the entire demo offline.
-- `DEMO_MODE=false` blocks all case and API routes until user identity, patient consent, encrypted storage, and a live communication adapter are implemented. Nessie and FinchNode adapter code is present for later integration, but the app does not expose real patient data in this state.
+- Only the case owner can call `authorize_review`, the single path to (mock) provider contact. No bank chargeback is initiated.
+- The module contains only mock providers and makes no network calls, so it cannot reach a bank, EHR, or hospital.
+- All data is synthetic. Tables are private and readable only through per-owner views, but there is no real authentication, consent tracking, or encrypted storage — do not enter real patient data.
 
-## Integration configuration
+## Reference integrations
 
-Copy `.env.example` to `.env` for local configuration; both `.env` and `.env.local` are ignored by Git. Nessie needs a sandbox API key, customer ID, and its HTTPS API origin. The adapter reads account purchases and resolves merchant IDs to merchant names. FinchNode needs a server-side API key and a subject from a completed patient Connect consent flow; it uses the [consent-filtered records endpoint](https://finchnode.com/products/records-api). The [Relay staging API](https://docs.staging.relayapp.im/api-reference/overview) uses a server-side Agent Token and Relay handles. Its documented calls reach people in Relay chats, so a participating provider handle is needed; this does not establish ordinary hospital phone dialing. The Relay adapter has not been implemented or enabled. No credential belongs in source control.
+`src/services/banking/nessie.ts` and `src/services/medical/finchnode.ts` are adapters kept from earlier work, with their tests. Nothing imports them, so they are not bundled; they document the sandbox field mappings for later live work. Their variables are listed in `.env.example` and belong in the ignored `.env`.
 
-The Relay CLI is pinned as a project-local development dependency. After `npm ci`, use `./node_modules/.bin/relay --help`. A staging agent named `medical_bill_guardian` was created through this CLI; its token is stored only in the ignored local `.env` and Relay's private CLI profile. Agent creation alone does not send messages or enable live mode.
+For this checkout, a synthetic Nessie customer, account, University Hospital merchant, and $4,820 purchase were created and verified through the sandbox read endpoints; their IDs remain in the ignored `.env`. The FinchNode sandbox key was validated, but its synthetic Connect sessions still report `syncing` and have not issued an app-scoped subject. These separate synthetic sources do not establish that a FinchNode patient had the University Hospital visit in the demo.
 
-For this checkout, a synthetic Nessie customer, account, University Hospital merchant, and $4,820 purchase have been created and verified through the sandbox read endpoints. Their IDs and key remain in the ignored local `.env`; a fresh clone must supply its own sandbox credentials and records. The FinchNode sandbox key was validated, but its synthetic Connect sessions are still reporting `syncing` and have not issued an app-scoped subject. The public FinchNode demo record was used only to validate the adapter's normalized field mapping. These separate synthetic sources do not establish that the FinchNode patient had the University Hospital visit shown in the local mock story.
-
-## API
-
-`GET /api/transactions`, `POST /api/transactions/scan`, `GET|POST /api/cases`, `GET /api/cases/:id`, `POST /api/cases/:id/run`, `POST /api/cases/:id/analyze`, `POST /api/cases/:id/request-review`, `POST /api/cases/:id/notify`, and read-only medical-record, communication, and timeline routes under `/api/cases/:id/`. `analyze` returns `202` while the requested statement is pending.
+The [Relay staging API](https://docs.staging.relayapp.im/api-reference/overview) uses a server-side Agent Token and Relay handles; its documented calls reach people in Relay chats, not ordinary hospital phone lines. A staging agent named `medical_bill_guardian` exists, created with the project-local CLI (`./node_modules/.bin/relay`). No Relay adapter is implemented.
