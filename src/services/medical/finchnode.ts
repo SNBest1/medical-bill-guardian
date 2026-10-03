@@ -4,7 +4,14 @@ import type { MedicalRecordProvider } from "./provider";
 type FinchEntry = { id?: string; name?: string; description?: string; title?: string; type?: string; date?: string; startDate?: string; createdDate?: string; issuedDate?: string; effectiveDate?: string; sourceName?: string };
 type FinchSnapshot = { data?: Record<string, FinchEntry[] | undefined> };
 
-/** Converts consent-filtered FinchNode records into only the clinical evidence needed for matching. */
+/** The consented subject is missing or not yet resolved from a completed Connect session. */
+export class FinchNodeConfigError extends Error {}
+/** The patient revoked or let expire the consent that authorized this read (FinchNode 410 consent_inactive). */
+export class FinchNodeConsentError extends Error {}
+
+const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+
+/** Converts consent-filtered FinchNode records into only the clinical evidence needed for matching. Claims are never included: they are billing artifacts, not proof of care. */
 export function normalizeFinchRecords(snapshot: FinchSnapshot): MedicalRecord[] {
   const categories: Array<[string, MedicalRecord["type"]]> = [["encounters", "encounter"], ["medications", "medication"], ["medicationAdministrations", "medication"], ["labs", "lab"], ["diagnosticReports", "document"], ["documents", "document"]];
   return categories.flatMap(([category, type]) => (snapshot.data?.[category] ?? []).flatMap((entry) => {
@@ -15,18 +22,44 @@ export function normalizeFinchRecords(snapshot: FinchSnapshot): MedicalRecord[] 
   }));
 }
 
+/**
+ * A FinchNode subject can carry years of unrelated history. Only records whose provider
+ * matches the paid merchant and whose date falls in the same pre-payment window used to
+ * match the encounter itself (see matchEncounter in reconciliation/matcher.ts) may be
+ * attached as evidence for this case — otherwise an unrelated visit could be mistaken for
+ * support (or contradiction) of a charge it has nothing to do with.
+ */
+export function matchesEncounterContext(record: MedicalRecord, transaction: Transaction): boolean {
+  const merchant = normalize(transaction.merchant);
+  const provider = normalize(record.provider);
+  const paid = Date.parse(`${transaction.date}T00:00:00Z`);
+  const recordDate = Date.parse(`${record.date}T00:00:00Z`);
+  if (Number.isNaN(paid) || Number.isNaN(recordDate)) return false;
+  const daysBeforePayment = (paid - recordDate) / 86400000;
+  return (provider.includes(merchant) || merchant.includes(provider)) && daysBeforePayment >= 0 && daysBeforePayment <= 14;
+}
+
 export class FinchNodeProvider implements MedicalRecordProvider {
-  /** Reads a patient-consented snapshot from FinchNode's documented records endpoint. */
-  async getMedicalRecords(_transaction: Transaction): Promise<MedicalRecord[]> {
+  /**
+   * Reads a patient-consented snapshot from FinchNode's documented records endpoint, then
+   * narrows it to the encounter this case is about. The subject must come from a completed
+   * Connect session's own response (`simulation.state === "completed"` → `subject`) — never
+   * from `GET /users`, which lists active shares for admin/reconciliation and will not
+   * resolve the patient behind a session that is still syncing. See
+   * docs/FINCHNODE_HANDOFF.md for the current sandbox session status and how to resolve it.
+   */
+  async getMedicalRecords(transaction: Transaction): Promise<MedicalRecord[]> {
     const key = process.env.FINCHNODE_API_KEY;
     const subject = process.env.FINCHNODE_SUBJECT;
-    if (!key || !subject) throw new Error("FinchNode key and consented subject are required");
+    if (!key || !subject) throw new FinchNodeConfigError("FinchNode key and a consented subject (from a completed Connect session) are required");
     const base = process.env.FINCHNODE_BASE_URL || "https://api.finchnode.com/api/v1";
     const url = new URL(`${base.replace(/\/$/, "")}/users/${encodeURIComponent(subject)}/records`);
     if (url.protocol !== "https:") throw new Error("FinchNode requires HTTPS");
     url.searchParams.set("categories", "encounters,medications,labs,documents,claims");
     const response = await fetch(url, { headers: { Authorization: `Bearer ${key}` }, cache: "no-store" });
+    if (response.status === 410) throw new FinchNodeConsentError("FinchNode consent for this subject is no longer active (revoked or expired)");
     if (!response.ok) throw new Error(`FinchNode records request failed: ${response.status}`);
-    return normalizeFinchRecords(await response.json() as FinchSnapshot);
+    const records = normalizeFinchRecords(await response.json() as FinchSnapshot);
+    return records.filter((record) => matchesEncounterContext(record, transaction));
   }
 }

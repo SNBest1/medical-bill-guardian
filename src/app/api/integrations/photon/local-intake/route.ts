@@ -1,0 +1,31 @@
+import { NextResponse } from "next/server";
+import { getStore } from "@/lib/db";
+import { authorizedWorker } from "@/services/agent/worker-auth";
+import { parseLocalPhotonMessage, type LocalPhotonMessage, type LocalPhotonSpace } from "@/services/communications/photon-receiver";
+
+export const runtime = "nodejs";
+const MAX_BODY_BYTES = 131072;
+
+/**
+ * Alternative to the public signed webhook: a worker-token-authenticated local process
+ * (scripts/photon-receiver.mjs) holds the live Spectrum connection and forwards each inbound
+ * hospital DM here over loopback. No HMAC is checked — the trust boundary is the worker token,
+ * the same one /api/integrations/tick uses — but the message still passes the identical sender,
+ * DM, platform and grammar checks the webhook enforces, and lands in the same durable inbox, so
+ * duplicates between the two transports (e.g. a webhook later registered for the same project)
+ * dedupe against each other by Spectrum's own message ID.
+ */
+export async function POST(request: Request) {
+  if (!authorizedWorker(request)) return new Response(null, { status: 401 });
+  if (process.env.DEMO_MODE === "false") return new Response(null, { status: 503 });
+  if (Number(request.headers.get("content-length")) > MAX_BODY_BYTES) return new Response(null, { status: 413 });
+  const raw = await request.text();
+  if (Buffer.byteLength(raw) > MAX_BODY_BYTES) return new Response(null, { status: 413 });
+  try {
+    const body = JSON.parse(raw) as { space?: LocalPhotonSpace; message?: LocalPhotonMessage };
+    const entry = parseLocalPhotonMessage(body.space ?? {}, body.message ?? ({} as LocalPhotonMessage), process.env.DEMO_HOSPITAL_PHONE ?? "");
+    if (!entry) return NextResponse.json({ accepted: false, ignored: true });
+    const inserted = getStore().enqueueStatement(entry);
+    return NextResponse.json({ accepted: true, duplicate: !inserted }, { status: 202 });
+  } catch { return NextResponse.json({ error: "Invalid local statement delivery" }, { status: 400 }); }
+}

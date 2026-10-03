@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { normalizeFinchRecords } from "./finchnode";
+import { matchesEncounterContext, normalizeFinchRecords } from "./finchnode";
+import type { Transaction } from "../../types/domain";
 
 describe("FinchNode normalization", () => {
   it("extracts dated evidence without treating a claim as proof of care", () => {
@@ -23,5 +24,23 @@ describe("FinchNode normalization", () => {
       { id: "lab-1", type: "lab", date: "2026-09-28" },
       { id: "report-1", type: "document", date: "2026-09-28" }
     ]);
+  });
+});
+
+describe("FinchNode encounter-context matching", () => {
+  const transaction: Transaction = { id: "nessie-demo-4820", merchant: "University Hospital", amount: 4820, date: "2026-09-28", category: "healthcare" };
+
+  it("keeps a record from the paid provider inside the pre-payment window", () => {
+    expect(matchesEncounterContext({ id: "rec-1", type: "lab", description: "Blood count", date: "2026-09-28", provider: "University Hospital" }, transaction)).toBe(true);
+    expect(matchesEncounterContext({ id: "rec-2", type: "encounter", description: "ER visit", date: "2026-09-20", provider: "University Hospital Emergency Department" }, transaction)).toBe(true);
+  });
+
+  it("drops a record from an unrelated provider so it is never attached to this payment", () => {
+    expect(matchesEncounterContext({ id: "rec-3", type: "lab", description: "Routine panel", date: "2026-09-28", provider: "Northstar Health System" }, transaction)).toBe(false);
+  });
+
+  it("drops a record outside the matching window even from the right provider", () => {
+    expect(matchesEncounterContext({ id: "rec-4", type: "medication", description: "Unrelated prescription", date: "2025-01-01", provider: "University Hospital" }, transaction)).toBe(false);
+    expect(matchesEncounterContext({ id: "rec-5", type: "lab", description: "Follow-up panel", date: "2026-10-05", provider: "University Hospital" }, transaction)).toBe(false);
   });
 });

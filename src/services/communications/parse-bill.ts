@@ -16,5 +16,11 @@ export function parseItemizedBill(statement: string): ItemizedBill {
     if (parts.length !== 3 || !parts[0] || !/^\d+(?:\.\d{2})?$/.test(parts[2])) throw new Error(`Invalid itemized charge on line ${index + 1}`);
     return { id: `bill-${index + 1}`, description: parts[0], code: parts[1] === "-" ? undefined : parts[1], amount: Number(parts[2]), serviceDate: serviceDate! };
   });
-  return { invoiceId, provider, total: Number(totalText), items };
+  const optionalAmount = (name: string) => {
+    const value = field(name);
+    if (value === undefined) return undefined;
+    if (!/^\d+(?:\.\d{2})?$/.test(value)) throw new Error(`Invalid ${name}`);
+    return Number(value);
+  };
+  return { invoiceId, provider, total: Number(totalText), patientResponsibility: optionalAmount("Patient responsibility"), insuranceAdjustments: optionalAmount("Insurance adjustments"), items };
 }

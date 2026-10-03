@@ -10,15 +10,19 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "animejs": "4.5.0",
     "lucide-react": "0.468.0",
     "next": "16.3.8",
     "react": "19.1.1",
-    "react-dom": "19.1.1"
+    "react-dom": "19.1.1",
+    "spectrum-ts": "12.10.1",
+    "three": "0.186.1"
   },
   "devDependencies": {
     "@types/node": "22.18.6",
     "@types/react": "19.1.13",
     "@types/react-dom": "19.1.9",
+    "@types/three": "0.186.0",
     "relaymessenger": "0.1.18-staging.1",
     "typescript": "5.9.2",
     "vitest": "4.1.11"
