@@ -1,0 +1,7 @@
+{
+  "name": "medical-bill-guardian-module",
+  "private": true,
+  "type": "module",
+  "dependencies": { "spacetimedb": "2.10.2" },
+  "devDependencies": { "typescript": "5.9.2" }
+}

@@ -29,13 +29,16 @@
     }
   },
   "include": [
+    "src",
+    "spacetimedb/src",
+    "*.ts",
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "spacetimedb/node_modules",
+    "dist"
   ]
 }
