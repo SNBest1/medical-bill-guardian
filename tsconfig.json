@@ -16,26 +16,18 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    }
+    "types": [
+      "vite/client"
+    ]
   },
   "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    "src",
+    "spacetimedb/src",
+    "*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "spacetimedb/node_modules",
+    "dist"
   ]
 }

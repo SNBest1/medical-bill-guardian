@@ -1,4 +1,4 @@
-import type { AuditEntry, Communication } from "@/types/domain";
+import type { AuditEntry, Communication } from "../types/domain";
 
 /** Lets demo viewers inspect recorded tool steps and provider exchanges. */
 export function CaseActivity({ auditLog, communications }: { auditLog: AuditEntry[]; communications: Communication[] }) {
