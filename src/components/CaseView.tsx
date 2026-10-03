@@ -1,0 +1,66 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronRight, CircleAlert, Clock3, FileText, HeartPulse, LoaderCircle, ShieldCheck, Sparkles } from "lucide-react";
+import type { Finding, MedicalBillCase } from "@/types/domain";
+
+const money = (value: number) => `$${value.toLocaleString()}`;
+const date = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+const time = (value: string) => new Date(value).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+export function CaseView({ id, demo }: { id: string; demo: boolean }) {
+  const [caseData, setCaseData] = useState<MedicalBillCase | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const load = useCallback(async () => { const response = await fetch(`/api/cases/${id}`); if (response.ok) setCaseData(await response.json()); else setError("Case not found"); }, [id]);
+  useEffect(() => { void load(); }, [load]);
+  async function action(path: string, body?: object) {
+    setBusy(true); setError("");
+    try {
+      const response = await fetch(`/api/cases/${id}/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "The action could not be completed");
+      setCaseData(data);
+      if (path === "run") setSelected("bill-specialist");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "The action failed"); }
+    finally { setBusy(false); }
+  }
+
+  async function restartDemo() {
+    setBusy(true); setError("");
+    try {
+      const response = await fetch("/api/demo/reset", { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "The demo could not restart");
+      setCaseData(data); setSelected(null);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "The demo could not restart"); }
+    finally { setBusy(false); }
+  }
+
+  if (!caseData) return <div className="shell"><header className="topbar"><Link href="/" className="brand"><span className="brand-mark"><HeartPulse size={20}/></span>medical bill <strong>guardian</strong></Link></header><main className="loading-state">{error || "Loading case…"}</main></div>;
+  const bill = caseData.bill;
+  const finding = caseData.findings.find((item) => item.billItemId === selected) ?? caseData.findings[0];
+  const supported = caseData.findings.filter((item) => item.clinicalStatus === "SUPPORTED").length;
+  const review = caseData.findings.filter((item) => item.action === "REQUEST_REVIEW").length;
+  const complete = caseData.status === "USER_NOTIFIED";
+  return <div className="shell"><header className="topbar"><Link href="/" className="brand"><span className="brand-mark"><HeartPulse size={20} strokeWidth={2.4}/></span><span>medical bill <strong>guardian</strong></span></Link><div className="topbar-right"><span className="topbar-note">Case {caseData.id}</span>{demo && <span className="demo-pill"><span /> Demo mode</span>}</div></header>
+    <main className="main case-page"><Link href="/" className="back-link"><ArrowLeft size={16}/> Back to dashboard</Link>
+      <section className="case-hero"><div><div className="eyebrow"><ShieldCheck size={15}/> BILLING INVESTIGATION <span className="eyebrow-divider">/</span> {caseData.id}</div><h1>{caseData.provider.name}</h1><p>Payment on {date(caseData.transaction.date)} <span className="middle-dot">·</span> Invoice {bill?.invoiceId ?? "pending"}</p><div className={`hero-status ${complete ? "complete" : caseData.status === "REVIEW_REQUIRED" ? "attention" : ""}`}><span /> {complete ? "Review complete" : caseData.status === "REVIEW_REQUIRED" ? "Needs your approval" : caseData.status === "DETECTED" ? "Payment detected" : "Investigation in progress"}</div></div><div className="payment-card"><span>ORIGINAL PAYMENT</span><strong>{money(caseData.transaction.amount)}</strong><small>{caseData.resolution ? `${money(caseData.resolution.adjustment)} correction confirmed` : "We’re checking what this covered"}</small></div></section>
+      {caseData.status === "DETECTED" && <section className="action-panel"><div className="action-symbol"><FileText size={23}/></div><div><h2>Ready to look closer?</h2><p>We’ll find the matching visit, retrieve the demo itemized bill, and compare each charge with the medical record.</p></div><button className="primary-button" disabled={busy} onClick={() => action("run")}>{busy ? <LoaderCircle className="spin" size={17}/> : <Sparkles size={17}/>} {busy ? "Investigating…" : "Investigate this bill"} <ArrowRight size={17}/></button></section>}
+      {caseData.status === "REVIEW_REQUIRED" && <section className="review-banner"><div className="review-symbol"><CircleAlert size={25}/></div><div><span className="section-kicker">YOUR DECISION</span><h2>One charge needs a closer look.</h2><p>We couldn’t find a specialist encounter in the available record. That does not prove the charge is wrong. Would you like us to ask hospital billing to verify it?</p><small>Specialist consultation <b>·</b> $700</small></div><button className="primary-button" disabled={busy} onClick={() => action("request-review", { authorized: true })}>{busy ? <LoaderCircle className="spin" size={17}/> : <ArrowRight size={17}/>} {busy ? "Requesting review…" : "Authorize billing review"}</button></section>}
+      {error && <div className="error-banner" role="alert">{error}</div>}
+      {caseData.resolution && <section className="resolution-strip"><div className="resolution-icon"><Check size={22}/></div><div><span>PROVIDER-CONFIRMED CORRECTION</span><h2>{money(caseData.resolution.adjustment)} removed from the bill</h2><p>{caseData.resolution.explanation}</p></div><div className="resolution-math"><span>{money(caseData.resolution.originalTotal)}</span><ArrowRight size={18}/><strong>{money(caseData.resolution.correctedTotal)}</strong></div></section>}
+      <div className="case-columns"><section className="timeline-panel"><div className="panel-heading"><div><span className="section-kicker">THE STORY SO FAR</span><h2>Case timeline</h2></div><span className="panel-icon"><Clock3 size={19}/></span></div><div className="timeline">{caseData.timeline.map((event, index) => <div className={`timeline-item ${event.status}`} key={event.id}><div className="timeline-track"><span className="timeline-dot">{event.status === "complete" ? <Check size={12} strokeWidth={3}/> : <CircleAlert size={14}/>}</span>{index < caseData.timeline.length - 1 && <span className="timeline-line"/>}</div><div className="timeline-content"><div className="timeline-title"><strong>{event.title}</strong><time>{time(event.timestamp)}</time></div><p>{event.detail}</p><span className="timeline-source">{event.source}</span></div></div>)}</div></section>
+      <div className="right-stack"><section className="bill-panel"><div className="panel-heading"><div><span className="section-kicker">LINE BY LINE</span><h2>Itemized bill</h2></div><span className="bill-count">{bill?.items.length ?? 0} charges</span></div>{bill ? <><div className="bill-list">{bill.items.map((item) => { const result = caseData.findings.find((entry) => entry.billItemId === item.id); return <button type="button" className={`bill-row ${selected === item.id ? "selected" : ""}`} key={item.id} onClick={() => setSelected(item.id)}><span className={`bill-status ${result?.action === "REQUEST_REVIEW" ? "attention" : ""}`}>{result?.action === "REQUEST_REVIEW" ? <CircleAlert size={16}/> : <CheckCircle2 size={16}/>}</span><span className="bill-name"><strong>{item.description}</strong><small>{result?.action === "REQUEST_REVIEW" ? "Needs review" : "Supported by record"}</small></span><strong className="bill-amount">{money(item.amount)}</strong><ChevronRight size={16} className="bill-chevron"/></button>; })}</div><div className="bill-total"><span>Itemized total</span><strong>{money(bill.total)}</strong></div></> : <div className="bill-placeholder"><FileText size={24}/><p>The itemized bill will appear here after investigation.</p></div>}</section>
+      <section className="evidence-panel"><div className="panel-heading"><div><span className="section-kicker">UNDER THE SURFACE</span><h2>Evidence view</h2></div><span className="panel-icon"><FileText size={19}/></span></div>{finding ? <Evidence finding={finding} serviceDate={caseData.transaction.date} /> : <div className="bill-placeholder"><ShieldCheck size={24}/><p>Select a charge after analysis to see the supporting evidence.</p></div>}</section></div></div>
+      {caseData.summary && <section className="summary-panel"><div className="summary-symbol"><Sparkles size={21}/></div><div><span className="section-kicker">YOUR SUMMARY</span><h2>What happened</h2><p>{caseData.summary}</p>{demo && <button className="replay-button" type="button" onClick={restartDemo} disabled={busy}>Restart demo <ArrowRight size={15}/></button>}</div></section>}
+      <footer className="footer"><span>Medical Bill Guardian</span><span><Check size={14}/> Missing evidence means “needs review,” not “invalid charge.”</span></footer>
+    </main></div>;
+}
+
+function Evidence({ finding, serviceDate }: { finding: Finding; serviceDate: string }) {
+  const uncertain = finding.action === "REQUEST_REVIEW";
+  return <div className="evidence-body"><div className="evidence-top"><div><strong>{finding.description}</strong><span>{money(finding.amount)} <b>·</b> {date(serviceDate)}</span></div><span className={`evidence-tag ${uncertain ? "attention" : ""}`}>{uncertain ? "Needs review" : "Supported"}</span></div><div className="evidence-section"><span className="evidence-label">BILLED SERVICE</span><p>{finding.description} at University Hospital</p></div><div className="evidence-section"><span className="evidence-label">MEDICAL RECORD</span>{finding.evidence.length ? finding.evidence.map((item) => <p key={item} className="evidence-match"><CheckCircle2 size={17}/>{item}</p>) : <p>No corresponding service found in the available records.</p>}</div><div className={`evidence-note ${uncertain ? "attention" : ""}`}>{uncertain ? <CircleAlert size={18}/> : <ShieldCheck size={18}/>}<p>{finding.explanation}</p></div><div className="confidence-row"><span>Clinical match confidence</span><strong>{Math.round(finding.confidence * 100)}%</strong></div><div className="confidence-bar"><span style={{ width: `${finding.confidence * 100}%` }}/></div><p className="price-note">Price benchmarking was not performed; no market price is claimed.</p></div>;
+}
