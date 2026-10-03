@@ -11,6 +11,7 @@ export async function generateCaseSummary(caseData: MedicalBillCase, fallback: s
     correctedTotal: caseData.resolution?.correctedTotal ?? caseData.bill?.total,
     adjustment: caseData.resolution?.adjustment ?? 0,
     providerConfirmedOutcome: caseData.resolution?.explanation ?? null,
+    refundStatus: caseData.recovery?.status ?? null,
     supportedServices: caseData.findings.filter((finding) => finding.clinicalStatus === "SUPPORTED").map((finding) => finding.description),
     needsReview: caseData.findings.filter((finding) => finding.action === "REQUEST_REVIEW").map((finding) => ({ description: finding.description, amount: finding.amount }))
   };
@@ -30,7 +31,7 @@ export async function generateCaseSummary(caseData: MedicalBillCase, fallback: s
     const required = [facts.originalTotal, facts.correctedTotal, facts.adjustment].filter((value): value is number => typeof value === "number").map((value) => `$${value.toLocaleString()}`);
     const allowedNumbers = [facts.originalTotal, facts.correctedTotal, facts.adjustment, ...facts.needsReview.map((item) => item.amount)];
     const mentionedNumbers = [...text.matchAll(/\$\s?([\d,]+(?:\.\d{1,2})?)/g)].map((match) => Number(match[1].replaceAll(",", "")));
-    if (!text || /fraud|scam|criminal/i.test(text) || !required.every((amount) => text.includes(amount)) || mentionedNumbers.some((amount) => !allowedNumbers.includes(amount))) return fallback;
+    if (!text || /fraud|scam|criminal/i.test(text) || (facts.refundStatus === "REFUND_PENDING" && /recovered|refunded|money (?:has been |was )?(?:received|returned)|refund (?:has |was )?(?:arrived|received|completed)/i.test(text)) || !required.every((amount) => text.includes(amount)) || mentionedNumbers.some((amount) => !allowedNumbers.includes(amount))) return fallback;
     return text;
   } catch { return fallback; }
 }

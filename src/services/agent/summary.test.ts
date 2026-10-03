@@ -37,4 +37,11 @@ describe("AI summary boundary", () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ output: [{ type: "message", content: [{ type: "output_text", text: "The $4,820 bill became $4,120 after a $700 correction. The fair price was $2,000." }] }] }) });
     expect(await generateCaseSummary(await reviewedCase(), "fallback", "test-key", fetcher)).toBe("fallback");
   });
+
+  it("rejects a claim that a pending refund has already been recovered", async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ output: [{ type: "function_call", name: "get_case_facts", call_id: "call_1", arguments: "{}" }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ output: [{ type: "message", content: [{ type: "output_text", text: "The $4,820 bill became $4,120. We recovered $700 for you." }] }] }) });
+    expect(await generateCaseSummary(await reviewedCase(), "fallback", "test-key", fetcher)).toBe("fallback");
+  });
 });

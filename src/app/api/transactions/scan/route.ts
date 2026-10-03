@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 import { bankProvider } from "@/lib/providers";
-import { isHealthcareTransaction } from "@/services/banking/provider";
-import { createCase } from "@/services/agent/orchestrator";
+import { discoverHospitalPayments } from "@/services/banking/discovery";
 import { getStore } from "@/lib/db";
 
 export const runtime = "nodejs";
 export async function POST() {
   try {
-    const transactions = (await bankProvider().getTransactions()).filter(isHealthcareTransaction);
-    const cases = transactions.map((transaction) => getStore().create(createCase(transaction)));
-    return NextResponse.json({ cases, detected: transactions.length });
+    return NextResponse.json(await discoverHospitalPayments(getStore(), bankProvider()));
   } catch (error) { return NextResponse.json({ error: String(error) }, { status: 502 }); }
 }

@@ -5,6 +5,11 @@ import { reconcile } from "../reconciliation/reconcile";
 import { matchEncounter } from "../reconciliation/matcher";
 import { generateCaseSummary } from "./summary";
 import { parseItemizedBill } from "../communications/parse-bill";
+import { comparePrices, loadPriceReferences } from "../reconciliation/pricing";
+import { assessPatientBalance } from "../reconciliation/insurance";
+
+/** A provider contact attempt failed after being sent; it may or may not have reached the provider, so retrying automatically is unsafe. */
+export class ContactAmbiguousError extends Error {}
 
 function record(caseData: MedicalBillCase, action: string, tool: string, inputSummary: string, outputSummary: string, title: string, detail: string, source: string) {
   const timestamp = new Date().toISOString();
@@ -16,7 +21,7 @@ function record(caseData: MedicalBillCase, action: string, tool: string, inputSu
 /** Creates a case from a qualifying bank transaction. */
 export function createCase(transaction: Transaction): MedicalBillCase {
   const now = new Date().toISOString();
-  return { id: transaction.id === "nessie-demo-4820" ? "CASE-4821" : `CASE-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: "DETECTED", transaction, provider: { name: transaction.merchant }, medicalRecords: [], bill: null, findings: [], communications: [], timeline: [{ id: crypto.randomUUID(), timestamp: now, title: "Hospital payment detected", detail: `$${transaction.amount.toLocaleString()} payment to ${transaction.merchant}`, source: "Bank transaction", status: "complete" }], auditLog: [{ id: crypto.randomUUID(), timestamp: now, action: "CREATE_CASE", tool: "getTransaction", inputSummary: transaction.id, outputSummary: "Case opened", status: "SUCCESS" }], resolution: null, summary: null, createdAt: now, updatedAt: now };
+  return { id: transaction.id === "nessie-demo-4820" ? "CASE-4821" : `CASE-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: "DETECTED", transaction, provider: { name: transaction.merchant }, medicalRecords: [], bill: null, findings: [], insurance: transaction.id === "nessie-demo-4820" ? { coverage: "SELF_PAY", network: "UNKNOWN", claimStatus: "UNKNOWN" } : undefined, communications: [], timeline: [{ id: crypto.randomUUID(), timestamp: now, title: "Hospital payment detected", detail: `$${transaction.amount.toLocaleString()} payment to ${transaction.merchant}`, source: "Bank transaction", status: "complete" }], auditLog: [{ id: crypto.randomUUID(), timestamp: now, action: "CREATE_CASE", tool: "getTransaction", inputSummary: transaction.id, outputSummary: "Case opened", status: "SUCCESS" }], resolution: null, summary: null, createdAt: now, updatedAt: now };
 }
 
 /** Retrieves records, requests a bill, and waits for the provider's statement. */
@@ -29,7 +34,9 @@ export async function investigateCase(current: MedicalBillCase, medical: Medical
   const encounter = matchEncounter(next.transaction, next.medicalRecords);
   if (encounter) record(next, "MATCH_ENCOUNTER", "matchEncounter", next.transaction.merchant, encounter.id, "Medical encounter located", `${encounter.description} · ${encounter.date}`, "Medical record");
   next.status = "REQUESTING_BILL";
-  const request = await communications.requestItemizedBill(next.provider.name);
+  let request;
+  try { request = await communications.requestItemizedBill(next.provider.name); }
+  catch (error) { throw new ContactAmbiguousError(`Itemized bill request may or may not have reached the provider: ${error}`); }
   next.communications.push(request);
   record(next, "REQUEST_BILL", "requestItemizedBill", next.provider.name, "Bill request submitted", "Itemized bill requested", "Waiting for the provider's statement", "Hospital billing");
   next.status = "WAITING_FOR_BILL";
@@ -48,15 +55,26 @@ export async function analyzeCase(current: MedicalBillCase, communications: Comm
     next.updatedAt = new Date().toISOString();
     return next;
   }
+  return receiveItemizedStatement(current, statement);
+}
+
+/** Shared intake for delivered statements, including the demo inbox fallback. */
+export function receiveItemizedStatement(current: MedicalBillCase, statement: string): MedicalBillCase {
+  if (current.status !== "WAITING_FOR_BILL") throw new Error("Case is not waiting for an itemized statement");
+  const request = current.communications.find((item) => item.type === "ITEMIZED_BILL_REQUEST");
+  if (!request) throw new Error("Itemized bill request is missing");
+  const bill = parseItemizedBill(statement);
+  if (bill.provider !== current.provider.name) throw new Error("Statement provider does not match this case");
   const next = structuredClone(current);
-  next.bill = parseItemizedBill(statement);
+  next.bill = bill;
   const savedRequest = next.communications.find((item) => item.id === request.id)!;
   savedRequest.status = "COMPLETED";
   savedRequest.result = `Invoice ${next.bill.invoiceId} received`;
   record(next, "RECEIVE_BILL", "getItemizedBill", request.id, next.bill.invoiceId, "Itemized bill received", `Statement for invoice ${next.bill.invoiceId}`, "Hospital billing");
   record(next, "PARSE_BILL", "parseItemizedBill", next.bill.invoiceId, `${next.bill.items.length} charges`, "Itemized bill parsed", `${next.bill.items.length} charges extracted from the provider statement`, "Case agent");
   next.status = "ANALYZING";
-  next.findings = reconcile(next.bill, next.medicalRecords);
+  next.findings = comparePrices(next.bill, reconcile(next.bill, next.medicalRecords), loadPriceReferences(), next.insurance);
+  next.financialReview = assessPatientBalance(next.bill, next.transaction.amount, next.insurance);
   const supported = next.findings.filter((finding) => finding.clinicalStatus === "SUPPORTED").length;
   const review = next.findings.filter((finding) => finding.action === "REQUEST_REVIEW").length;
   record(next, "RECONCILE", "compareBillToRecords", `${next.bill.items.length} charges`, `${supported} supported, ${review} need review`, "Bill analyzed", `${supported} supported · ${review} requires review`, "Reconciliation engine");
@@ -73,11 +91,33 @@ export async function reviewCase(current: MedicalBillCase, communications: Commu
   next.status = "CONTACTING_PROVIDER";
   const approvalEvent = next.timeline.find((event) => event.title === "Your approval is needed");
   if (approvalEvent) { approvalEvent.status = "complete"; approvalEvent.title = "You authorized billing review"; approvalEvent.detail = "Hospital billing may now verify the questioned charge"; }
-  const response = await communications.requestBillingReview(next.provider.name, current.bill.invoiceId, next.findings);
+  const response = await communications.requestBillingReview(next.provider.name, current.bill.invoiceId, next.findings, next.insurance);
+  const resolution = response.resolution;
+  if (![resolution.originalTotal, resolution.correctedTotal, resolution.adjustment].every((amount) => Number.isFinite(amount) && amount >= 0) || Math.abs(resolution.originalTotal - current.bill.total) > 0.01 || Math.abs(resolution.originalTotal - resolution.correctedTotal - resolution.adjustment) > 0.01) throw new Error("Provider correction does not reconcile with the itemized bill");
   next.communications.push(response.communication);
   next.resolution = response.resolution;
+  if (next.insurance?.coverage === "INSURED" && response.resolution.adjustment > 0) {
+    next.financialReview = { status: "REPROCESSING_REQUIRED", reasons: ["The provider corrected gross charges. Obtain a revised insurer EOB and provider patient balance before determining the patient's refund; deductible, copay, coinsurance, secondary payments, and benefit accumulators may change."] };
+    delete next.recovery;
+  } else if (response.resolution.adjustment > 0 && process.env.DEMO_MODE !== "false" && next.transaction.id === "nessie-demo-4820") {
+    next.recovery = { status: "REFUND_PENDING", amount: response.resolution.adjustment, confirmation: `DEMO-${current.bill.invoiceId}-REFUND`, simulated: true };
+  }
   record(next, "REQUEST_REVIEW", "requestBillingReview", `${next.findings.filter((finding) => finding.action === "REQUEST_REVIEW").length} findings`, response.resolution.result, "Hospital billing responded", response.resolution.explanation, "Hospital billing");
   next.status = response.resolution.result === "PROVIDER_REVIEW_PENDING" ? "WAITING_FOR_PROVIDER" : "RESOLVED";
+  return next;
+}
+
+/** Applies only the fixed synthetic refund credit; never claims a real bank refund. */
+export function receiveDemoRefund(current: MedicalBillCase): MedicalBillCase {
+  if (process.env.DEMO_MODE === "false") throw new Error("Synthetic refund credits require demo mode");
+  if (!current.recovery?.simulated || !current.resolution || current.status !== "USER_NOTIFIED") throw new Error("No completed synthetic review is awaiting a refund");
+  if (current.recovery.status === "REFUND_RECEIVED") return current;
+  if (current.transaction.id !== "nessie-demo-4820" || current.recovery.amount !== current.resolution.adjustment || current.recovery.amount !== 700) throw new Error("Refund does not match the seeded payment correction");
+  const next = structuredClone(current);
+  next.recovery!.status = "REFUND_RECEIVED";
+  next.recovery!.creditTransactionId = "demo-credit-700";
+  record(next, "VERIFY_DEMO_CREDIT", "matchSyntheticCredit", next.transaction.id, "Synthetic $700 credit matched", "Demo refund received", "A synthetic $700 credit matched the approved correction. No real money moved.", "Synthetic bank credit");
+  next.summary = `${next.summary ?? ""} A synthetic $700 refund credit has now been matched in the demo; no real money moved.`;
   return next;
 }
 
@@ -91,8 +131,9 @@ export async function notifyCase(current: MedicalBillCase, communications: Commu
   const reviewText = questioned.length ? `We could not verify ${questioned.map((finding) => `${finding.description} (${`$${finding.amount.toLocaleString()}`})`).join(", ")} from those records, so we asked hospital billing to review ${questioned.length === 1 ? "it" : "them"}.` : "";
   const outcomeText = result ? `${result.explanation} The bill changed from $${result.originalTotal.toLocaleString()} to $${result.correctedTotal.toLocaleString()}${result.adjustment > 0 ? `, a $${result.adjustment.toLocaleString()} correction` : ""}.` : "";
   const fallback = `We reviewed your ${next.provider.name} bill and compared its charges with your available medical records. ${supported} ${supported === 1 ? "service had" : "services had"} supporting records. ${reviewText} ${outcomeText}`.trim();
-  next.summary = await generateCaseSummary(next, fallback, process.env.DEMO_MODE !== "false" ? process.env.OPENAI_API_KEY : undefined);
-  record(next, "GENERATE_SUMMARY", "generateCaseSummary", "Structured case facts", next.summary === fallback ? "Deterministic summary" : "AI-assisted summary", "Plain-language summary prepared", "Case outcome explained from verified facts", "Case agent");
+  const generated = await generateCaseSummary(next, fallback, process.env.DEMO_MODE !== "false" ? process.env.OPENAI_API_KEY : undefined);
+  next.summary = next.financialReview?.status === "REPROCESSING_REQUIRED" ? `${fallback} This corrects gross charges. The patient's refund is not yet known; insurance must reprocess the claim and issue a revised EOB.` : next.recovery ? `${generated} Because the bill was already paid, the ${`$${next.recovery.amount.toLocaleString()}`} demo refund is pending; money has not been received.` : generated;
+  record(next, "GENERATE_SUMMARY", "generateCaseSummary", "Structured case facts", generated === fallback ? "Deterministic summary" : "AI-assisted summary", "Plain-language summary prepared", "Case outcome explained from verified facts", "Case agent");
   const notification = await communications.notifyUser(next.summary);
   next.communications.push(notification);
   record(next, "NOTIFY_USER", "notifyUser", next.id, "In-app summary recorded", "You were notified", "Review summary added to your case", "Notification");
