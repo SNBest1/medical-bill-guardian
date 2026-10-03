@@ -1,7 +1,8 @@
-import type { Communication, Finding, ItemizedBill, Resolution } from "../../types/domain";
+import type { Communication, Finding, Resolution } from "../../types/domain";
 
 export interface CommunicationProvider {
-  requestItemizedBill(providerName: string): Promise<{ bill: ItemizedBill; communication: Communication }>;
+  requestItemizedBill(providerName: string): Promise<Communication>;
+  getItemizedBill(providerName: string, request: Communication): Promise<string | null>;
   requestBillingReview(providerName: string, invoiceId: string, findings: Finding[]): Promise<{ resolution: Resolution; communication: Communication }>;
   notifyUser(summary: string): Promise<Communication>;
 }

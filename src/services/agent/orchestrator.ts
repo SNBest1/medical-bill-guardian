@@ -4,6 +4,7 @@ import type { CommunicationProvider } from "../communications/provider";
 import { reconcile } from "../reconciliation/reconcile";
 import { matchEncounter } from "../reconciliation/matcher";
 import { generateCaseSummary } from "./summary";
+import { parseItemizedBill } from "../communications/parse-bill";
 
 function record(caseData: MedicalBillCase, action: string, tool: string, inputSummary: string, outputSummary: string, title: string, detail: string, source: string) {
   const timestamp = new Date().toISOString();
@@ -18,7 +19,7 @@ export function createCase(transaction: Transaction): MedicalBillCase {
   return { id: transaction.id === "nessie-demo-4820" ? "CASE-4821" : `CASE-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: "DETECTED", transaction, provider: { name: transaction.merchant }, medicalRecords: [], bill: null, findings: [], communications: [], timeline: [{ id: crypto.randomUUID(), timestamp: now, title: "Hospital payment detected", detail: `$${transaction.amount.toLocaleString()} payment to ${transaction.merchant}`, source: "Bank transaction", status: "complete" }], auditLog: [{ id: crypto.randomUUID(), timestamp: now, action: "CREATE_CASE", tool: "getTransaction", inputSummary: transaction.id, outputSummary: "Case opened", status: "SUCCESS" }], resolution: null, summary: null, createdAt: now, updatedAt: now };
 }
 
-/** Retrieves records and a bill, then reconciles charges and pauses for review. */
+/** Retrieves records, requests a bill, and waits for the provider's statement. */
 export async function investigateCase(current: MedicalBillCase, medical: MedicalRecordProvider, communications: CommunicationProvider): Promise<MedicalBillCase> {
   if (current.status !== "DETECTED") return current;
   const next = structuredClone(current);
@@ -28,15 +29,37 @@ export async function investigateCase(current: MedicalBillCase, medical: Medical
   const encounter = matchEncounter(next.transaction, next.medicalRecords);
   if (encounter) record(next, "MATCH_ENCOUNTER", "matchEncounter", next.transaction.merchant, encounter.id, "Medical encounter located", `${encounter.description} · ${encounter.date}`, "Medical record");
   next.status = "REQUESTING_BILL";
-  const billResult = await communications.requestItemizedBill(next.provider.name);
-  next.bill = billResult.bill;
-  next.communications.push(billResult.communication);
-  record(next, "REQUEST_BILL", "requestItemizedBill", next.provider.name, billResult.bill.invoiceId, "Itemized bill received", `${billResult.bill.items.length} charges · Invoice ${billResult.bill.invoiceId}`, "Hospital billing");
+  const request = await communications.requestItemizedBill(next.provider.name);
+  next.communications.push(request);
+  record(next, "REQUEST_BILL", "requestItemizedBill", next.provider.name, "Bill request submitted", "Itemized bill requested", "Waiting for the provider's statement", "Hospital billing");
+  next.status = "WAITING_FOR_BILL";
+  return next;
+}
+
+/** Parses a delivered statement and compares every charge with clinical evidence. */
+export async function analyzeCase(current: MedicalBillCase, communications: CommunicationProvider): Promise<MedicalBillCase> {
+  if (current.status !== "WAITING_FOR_BILL") return current;
+  const request = current.communications.find((item) => item.type === "ITEMIZED_BILL_REQUEST");
+  if (!request) throw new Error("Itemized bill request is missing");
+  const statement = await communications.getItemizedBill(current.provider.name, request);
+  if (!statement) {
+    const next = structuredClone(current);
+    next.auditLog.push({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), action: "CHECK_BILL", tool: "getItemizedBill", inputSummary: request.id, outputSummary: "Statement not yet available", status: "SUCCESS" });
+    next.updatedAt = new Date().toISOString();
+    return next;
+  }
+  const next = structuredClone(current);
+  next.bill = parseItemizedBill(statement);
+  const savedRequest = next.communications.find((item) => item.id === request.id)!;
+  savedRequest.status = "COMPLETED";
+  savedRequest.result = `Invoice ${next.bill.invoiceId} received`;
+  record(next, "RECEIVE_BILL", "getItemizedBill", request.id, next.bill.invoiceId, "Itemized bill received", `Statement for invoice ${next.bill.invoiceId}`, "Hospital billing");
+  record(next, "PARSE_BILL", "parseItemizedBill", next.bill.invoiceId, `${next.bill.items.length} charges`, "Itemized bill parsed", `${next.bill.items.length} charges extracted from the provider statement`, "Case agent");
   next.status = "ANALYZING";
-  next.findings = reconcile(billResult.bill, next.medicalRecords);
+  next.findings = reconcile(next.bill, next.medicalRecords);
   const supported = next.findings.filter((finding) => finding.clinicalStatus === "SUPPORTED").length;
   const review = next.findings.filter((finding) => finding.action === "REQUEST_REVIEW").length;
-  record(next, "RECONCILE", "compareBillToRecords", `${billResult.bill.items.length} charges`, `${supported} supported, ${review} need review`, "Bill analyzed", `${supported} supported · ${review} requires review`, "Reconciliation engine");
+  record(next, "RECONCILE", "compareBillToRecords", `${next.bill.items.length} charges`, `${supported} supported, ${review} need review`, "Bill analyzed", `${supported} supported · ${review} requires review`, "Reconciliation engine");
   next.status = review ? "REVIEW_REQUIRED" : "RESOLVED";
   if (review) next.timeline.push({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), title: "Your approval is needed", detail: "Review the uncertain charge before contacting hospital billing", source: "You", status: "attention" });
   return next;

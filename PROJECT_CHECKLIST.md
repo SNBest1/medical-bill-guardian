@@ -25,12 +25,12 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 
 ## Next: strengthen the demo
 
-- [ ] Make the mock bill and mock provider response tell the same duplicate story. The current bill displays one $700 specialist line while the response says it was entered twice.
-- [ ] Parse an actual itemized statement or structured provider payload instead of receiving prestructured mock bill items.
-- [ ] Show separate bill-request and bill-received timeline events; support a bill that arrives later.
-- [ ] Show the audit log and stored communication transcript in the case UI if judges need to inspect agent actions.
-- [ ] Add a separate financial-review result when trustworthy reference data is available; keep clinical support and price review independent.
-- [ ] Run a timed end-to-end demo and confirm the full story fits within two minutes.
+- [x] Make the mock bill and provider response consistent: the specialist line duplicates services already included in the ER charge, as confirmed by the mock provider.
+- [x] Parse the mock provider's plain-text statement instead of receiving prestructured bill items. Real provider documents still need a separate parser.
+- [x] Show separate bill-request and bill-received timeline events and resume a case after a delayed mock bill arrives.
+- [x] Show the audit log and stored communication transcript in the case UI.
+- [x] Show clinical evidence and financial review separately; price review remains **not assessed** until a trustworthy reference source is connected.
+- [x] Run the complete synthetic flow through the API in 1.1 seconds and through the UI in 19 seconds, within the two-minute demo target.
 
 ## Next: live integrations and real patients
 
@@ -45,6 +45,7 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 - [ ] Deliver real user notifications through an approved communication channel; the current notification is in-app only.
 - [ ] Expand provider outcomes beyond the mock duplicate correction (verified charge, documentation supplied, adjustment, pending review, unresolved).
 - [ ] Add stronger encounter matching with claims/billing identifiers when available, and calibrate evidence confidence on real data.
+- [ ] Parse real provider statements or attachments and add a trustworthy financial reference source before making price claims.
 - [ ] Complete security, privacy, audit, and integration testing before removing the live-mode block or handling real patient information.
 
 ## Current scope decisions

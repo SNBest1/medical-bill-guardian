@@ -1,4 +1,5 @@
-import type { ItemizedBill, MedicalRecord, Transaction } from "../types/domain";
+import type { MedicalRecord, Transaction } from "../types/domain";
+import { parseItemizedBill } from "./communications/parse-bill";
 
 export const demoTransaction: Transaction = { id: "nessie-demo-4820", merchant: "University Hospital", amount: 4820, date: "2026-09-28", category: "healthcare" };
 
@@ -10,14 +11,18 @@ export const demoRecords: MedicalRecord[] = [
   { id: "record-med", type: "medication", description: "Medication administered in ER", date: "2026-09-28", provider: "University Hospital" }
 ];
 
-export const demoBill: ItemizedBill = {
-  invoiceId: "UH-48291", provider: "University Hospital", total: 4820,
-  items: [
-    { id: "bill-er", description: "Emergency room", code: "99285", amount: 1100, serviceDate: "2026-09-28" },
-    { id: "bill-ct", description: "CT scan", amount: 1800, serviceDate: "2026-09-28" },
-    { id: "bill-xray", description: "X-ray", amount: 450, serviceDate: "2026-09-28" },
-    { id: "bill-suture", description: "Suture repair", amount: 600, serviceDate: "2026-09-28" },
-    { id: "bill-med", description: "Medication", amount: 170, serviceDate: "2026-09-28" },
-    { id: "bill-specialist", description: "Specialist consultation", amount: 700, serviceDate: "2026-09-28" }
-  ]
-};
+export const demoStatement = `Invoice: UH-48291
+Provider: University Hospital
+Service date: 2026-09-28
+Insurance adjustments: 0.00
+Patient responsibility: 4820.00
+Charges
+Emergency room | 99285 | 1100.00
+CT scan | - | 1800.00
+X-ray | - | 450.00
+Suture repair | - | 600.00
+Medication | - | 170.00
+Specialist consultation | - | 700.00
+Total: 4820.00`;
+
+export const demoBill = parseItemizedBill(demoStatement);
