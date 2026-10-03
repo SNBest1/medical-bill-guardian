@@ -16,6 +16,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 `src/services/banking`, `medical`, and `communications` each define provider boundaries. `src/lib/providers.ts` selects mocks by default. Relay staging API documentation is linked in README, but a live adapter is not yet implemented; the communication provider still refuses to run in live mode. Relay's documented calls are between chat participants, so do not assume PSTN hospital dialing. FinchNode requires a consented subject. The mock provider never contacts a hospital.
 
+The Relay CLI is pinned in `devDependencies` and runs from `./node_modules/.bin/relay`. The staging agent handle is `medical_bill_guardian`. Its token belongs only in the ignored `.env` or Relay's local private profile; never print or commit it. Agent access policy changes need explicit approval before changing who can start chats.
+
 `src/proxy.ts` blocks all API and case routes when `DEMO_MODE=false`; remove this guard only after implementing user identity, per-patient consent, encrypted storage, and the live communication adapter.
 
 `src/app/api` contains the route handlers; `src/components/Dashboard.tsx` and `CaseView.tsx` present the demo. Next.js runs on port 3000. Start with `npm ci`, `cp .env.example .env`, `npm run dev`. Verify with `npm test`, `npm run typecheck`, `npm run build`. Keep `.env`, `.env.local`, and `data/` out of Git.

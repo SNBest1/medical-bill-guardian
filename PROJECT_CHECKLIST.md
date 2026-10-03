@@ -35,6 +35,7 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 ## Next: live integrations and real patients
 
 - [x] Obtain the Relay staging CLI/API documentation and identify its Agent Token, handles, messaging, calls, and webhook capabilities.
+- [x] Install the Relay CLI as an exact, project-local dependency and create the staging `medical_bill_guardian` agent without committing its token.
 - [ ] Implement and test a Relay `CommunicationProvider` for a participating provider handle, and handle asynchronous billing responses. The documented call feature reaches a Relay chat participant; ordinary hospital phone dialing is not established.
 - [ ] Connect and validate Nessie credentials, customer/account mapping, merchant data, and healthcare transaction detection against the chosen sandbox.
 - [ ] Build the FinchNode patient Connect/consent flow, validate its live response shape, and normalize all relevant authorized record categories.
