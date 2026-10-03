@@ -24,7 +24,7 @@ export function reconcile(bill: ItemizedBill, records: MedicalRecord[]): Finding
     return {
       billItemId: item.id, description: item.description, amount: item.amount, clinicalStatus,
       pricingStatus: "NOT_ASSESSED", confidence: duplicate ? 0.9 : dated.length ? 0.97 : 0.35,
-      evidence,
+      evidence, evidenceRecordIds: dated.map((record) => record.id),
       explanation: clinicalStatus === "SUPPORTED" ? "A corresponding service appears in the available medical record." : clinicalStatus === "DUPLICATE_SUSPECTED" ? "A matching line item appears more than once; ask billing to verify it." : "No corresponding service was found in the available medical record. This does not prove the charge is incorrect.",
       action: clinicalStatus === "SUPPORTED" ? "NONE" : "REQUEST_REVIEW"
     };

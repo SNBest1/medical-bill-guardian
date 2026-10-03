@@ -17,6 +17,19 @@ describe("reconcile", () => {
     expect(result.every((item) => item.pricingStatus === "NOT_ASSESSED")).toBe(true);
   });
 
+  it("links only matching dated clinical records to findings", () => {
+    const result = reconcile(demoBill, demoRecords);
+    for (const finding of result) {
+      const item = demoBill.items.find((item) => item.id === finding.billItemId)!;
+      for (const id of finding.evidenceRecordIds ?? []) {
+        expect(demoRecords.find((record) => record.id === id)?.date).toBe(item.serviceDate);
+      }
+    }
+    expect(result.find((item) => item.description === "Specialist consultation")?.evidenceRecordIds).toEqual([]);
+    expect(result.filter((item) => item.clinicalStatus === "SUPPORTED").every((item) => item.evidenceRecordIds?.length)).toBe(true);
+    expect(reconcile(demoBill, demoRecords.map((record) => ({ ...record, date: "1900-01-01" }))).every((item) => item.evidenceRecordIds?.length === 0)).toBe(true);
+  });
+
   it("flags a total mismatch separately from clinical evidence", () => {
     const result = reconcile({ ...demoBill, total: 4800 }, demoRecords);
     expect(result.some((item) => item.clinicalStatus === "AMOUNT_REVIEW")).toBe(true);
