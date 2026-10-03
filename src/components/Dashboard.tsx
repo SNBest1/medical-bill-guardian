@@ -2,40 +2,37 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Check, CircleDollarSign, HeartPulse, Play, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, FileSearch, HeartPulse, LoaderCircle, ShieldCheck } from "lucide-react";
 import type { MedicalBillCase } from "@/types/domain";
 
 const money = (value: number) => `$${value.toLocaleString()}`;
-const label = (status: string) => status === "USER_NOTIFIED" ? "Review complete" : status === "REVIEW_REQUIRED" ? "Needs your review" : status === "DETECTED" ? "Ready to investigate" : "Investigating";
 
 export function Dashboard({ demo }: { demo: boolean }) {
   const [cases, setCases] = useState<MedicalBillCase[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const refresh = useCallback(async () => { const response = await fetch("/api/cases"); if (response.ok) setCases(await response.json()); }, []);
-  useEffect(() => { if (demo) void scan(); else void refresh(); }, [demo, refresh]);
-
-  async function scan() {
+  const refresh = useCallback(async () => { const response = await fetch("/api/cases", { cache: "no-store" }); if (response.ok) setCases(await response.json()); }, []);
+  useEffect(() => { void refresh(); }, [refresh]);
+  async function openDemo() {
+    if (cases[0]) { window.location.assign(`/cases/${cases[0].id}`); return; }
     setBusy(true); setError("");
     try {
       const response = await fetch("/api/transactions/scan", { method: "POST" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Transaction scan failed");
-      await refresh();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Scan failed"); }
-    finally { setBusy(false); }
+      const data = await response.json(); if (!response.ok) throw new Error(data.error || "The demo case could not be opened");
+      await refresh(); window.location.assign(`/cases/${data.cases?.[0]?.id ?? "CASE-4821"}`);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "The demo case could not be opened"); setBusy(false); }
   }
-
-  const protectedSpend = cases.reduce((sum, item) => sum + item.transaction.amount, 0);
-  const confirmedSavings = cases.reduce((sum, item) => sum + (item.resolution?.adjustment ?? 0), 0);
-  const needsReview = cases.filter((item) => item.status === "REVIEW_REQUIRED").length;
-  return <div className="shell">
-    <header className="topbar"><Link href="/" className="brand"><span className="brand-mark"><HeartPulse size={20} strokeWidth={2.4} /></span><span>medical bill <strong>guardian</strong></span></Link><div className="topbar-right"><span className="topbar-note">Your healthcare, clearly accounted for.</span>{demo && <span className="demo-pill"><span /> Demo mode</span>}</div></header>
-    <main className="main dashboard">
-      <section className="hero-grid"><div className="hero-copy"><div className="eyebrow"><ShieldCheck size={15} /> A smarter second look</div><h1>Every charge<br /><em>deserves context.</em></h1><p>We connect a hospital payment to your medical record, review each line of the bill, and help you ask the right questions.</p><button className="primary-button" onClick={scan} disabled={busy}><Play size={16} fill="currentColor" /> {busy ? "Scanning transactions…" : cases.length ? "Scan again" : "Detect hospital payment"} <ArrowRight size={17} /></button>{error && <p className="error-text" role="alert">{error}</p>}</div><div className="hero-art" aria-hidden="true"><div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="hero-card"><div className="hero-card-top"><span className="tiny-dots"><i/><i/><i/></span><span>PAYMENT SIGNAL</span></div><div className="signal-line"><span /><span /><span /><span /><span /><span /><span /><span /><span /></div><div className="hero-card-bottom"><span>Transaction detected</span><strong>→</strong><span>Clarity delivered</span></div></div><span className="floating-cross">+</span></div></section>
-      <section className="metric-row" aria-label="Overview"><div className="metric"><span className="metric-icon teal"><CircleDollarSign size={19} /></span><span className="metric-label">Protected spend</span><strong>{money(protectedSpend)}</strong><small>Hospital payments being reviewed</small></div><div className="metric"><span className="metric-icon blue"><ShieldCheck size={19} /></span><span className="metric-label">Cases</span><strong>{cases.length.toString().padStart(2, "0")}</strong><small>{needsReview ? `${needsReview} waiting for your approval` : cases.length ? "Your reviews, all in one place" : "No cases yet"}</small></div><div className="metric"><span className="metric-icon amber"><Sparkles size={19} /></span><span className="metric-label">Confirmed corrections</span><strong>{money(confirmedSavings)}</strong><small>Only after provider confirmation</small></div></section>
-      <section className="cases-section"><div className="section-heading"><div><span className="section-kicker">YOUR CASES</span><h2>Billing investigations</h2></div><span className="section-count">{cases.length} total</span></div>{cases.length ? <div className="case-list">{cases.map((item) => <Link href={`/cases/${item.id}`} className="case-card" key={item.id}><div className="case-logo"><HeartPulse size={23} /></div><div className="case-info"><strong>{item.provider.name}</strong><span>{new Date(`${item.transaction.date}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} <b>·</b> {item.id}</span></div><div className="case-amount">{money(item.transaction.amount)}<span>Original payment</span></div><div className={`status-tag ${item.status === "REVIEW_REQUIRED" ? "attention" : item.status === "USER_NOTIFIED" ? "complete" : ""}`}><span /> {label(item.status)}</div><ArrowUpRight className="case-arrow" size={21} /></Link>)}</div> : <div className="empty-state"><div className="empty-icon"><ShieldCheck size={28} /></div><h3>Your next review starts with a payment.</h3><p>Scan your connected demo account to find the University Hospital charge.</p><button className="secondary-button" onClick={scan} disabled={busy}>Scan transactions <ArrowRight size={16} /></button></div>}</section>
-      <footer className="footer"><span>Medical Bill Guardian</span><span><Check size={14} /> Questions first. Confirmation before conclusions.</span></footer>
+  const current = cases[0];
+  return <div className="gx-shell gx-landing-shell">
+    <header className="gx-header"><Link href="/" className="gx-brand"><span><HeartPulse size={18}/></span>Medical Bill Guardian</Link><div className="gx-header-meta"><span>Interactive demo · Synthetic patient</span>{demo && <b>Demo mode</b>}</div></header>
+    <main className="gx-landing">
+      <section className="gx-landing-hero">
+        <div className="gx-landing-copy"><span className="gx-kicker">AFTER THE HOSPITAL</span><h1>You paid the bill.<br/><em>Did you owe it?</em></h1><p>Guardian checks each charge against your records, helps you ask billing the right question, and tracks what happens next.</p><button className="gx-landing-cta" disabled={busy} onClick={() => void openDemo()}>{busy ? <LoaderCircle className="spin" size={19}/> : <FileSearch size={19}/>} {busy ? "Opening the case…" : current ? "Resume demo case" : "Open demo case"}<ArrowRight size={20}/></button><a href="#how-it-works" className="gx-landing-link">How it works <ArrowRight size={15}/></a>{error && <p className="gx-error" role="alert">{error}</p>}</div>
+        <div className="gx-bill-preview" aria-label="Synthetic University Hospital statement"><div className="gx-paid-stub"><span>PAYMENT</span><strong>PAID</strong><small>Sep 28, 2026</small></div><div className="gx-preview-paper"><div className="gx-paper-head"><span>UNIVERSITY HOSPITAL</span><small>UH-48291</small></div><p>Emergency care after an accident</p><div className="gx-paper-lines"><span/><span/><span/><span/><span/><span className="question"/></div><div className="gx-paper-total"><span>PAID TOTAL</span><strong>{money(4820)}</strong></div></div><div className="gx-preview-caption"><ShieldCheck size={15}/> One case. Six charges. Evidence you can inspect.</div></div>
+      </section>
+      <section className="gx-how" id="how-it-works"><div><span className="gx-kicker">A SECOND LOOK THAT FOLLOWS THROUGH</span><h2>Understand. Ask. Track.</h2><p>A confusing bill creates work at exactly the wrong time. Guardian brings the payment, statement, and available records into one traceable case.</p></div><ol><li><span>01</span><div><strong>Understand the bill</strong><p>See each charge beside the record that supports it.</p></div></li><li><span>02</span><div><strong>Approve the question</strong><p>You decide before Guardian contacts the simulated billing desk.</p></div></li><li><span>03</span><div><strong>Track the result</strong><p>A correction, refund owed, and refund received stay separate.</p></div></li></ol></section>
+      <section className="gx-context"><strong>41<span>%</span></strong><p>of U.S. adults reported medical or dental debt in KFF’s 2022 survey.</p><a href="https://www.kff.org/health-costs/kff-health-care-debt-survey/" target="_blank" rel="noreferrer">Read the KFF survey <ArrowUpRight size={14}/></a></section>
+      <footer className="gx-footer"><span><Check size={15}/> Synthetic patient. Simulated billing desk. No real money moves.</span><span>Evidence first. You stay in control.</span></footer>
     </main>
   </div>;
 }

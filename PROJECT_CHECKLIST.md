@@ -34,14 +34,18 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 
 ## Next: live integrations and real patients
 
+- [ ] Before enabling real patient data or hospital calls, review HIPAA applicability and the patient-directed advocacy model with qualified privacy counsel; do not describe the prototype as HIPAA compliant.
+- [ ] Implement hospital-accepted patient disclosure authorization separately from FinchNode consent, including scope, expiration, revocation, identity verification, and separate approval for settlements or dispute submission.
+- [ ] Review voice/AI, messaging, upload, and storage vendors for appropriate data handling and any required business associate agreements; address call recording consent requirements before recording real calls.
+- [ ] Keep the voice centerpiece synthetic and clearly disclose the simulated hospital representative; provide patient takeover or patient-upload fallback when a real hospital cannot accept agent authorization. Use authenticated secure uploads for real statements rather than unverified chat or SMS delivery.
 - [x] Obtain the Relay staging CLI/API documentation and identify its Agent Token, handles, messaging, calls, and webhook capabilities.
 - [x] Install the Relay CLI as an exact, project-local dependency and create the staging `medical_bill_guardian` agent without committing its token.
 - [ ] Implement and test a Relay `CommunicationProvider` for a participating provider handle, and handle asynchronous billing responses. The documented call feature reaches a Relay chat participant; ordinary hospital phone dialing is not established.
 - [x] Validate Nessie sandbox credentials and create one synthetic customer, checking account, University Hospital merchant, and $4,820 purchase. Confirm the account/purchase/merchant read path used by the adapter; IDs stay in the ignored `.env`.
 - [ ] Connect the synthetic Nessie purchase to a case through a protected, authenticated live workflow; the current app deliberately blocks live case routes.
 - [x] Validate the FinchNode sandbox key and app categories, attempt synthetic Connect sessions, and test normalized record field mapping against FinchNode's public synthetic API.
-- [ ] Complete a FinchNode sandbox Connect simulation and save its app-scoped subject. Two sessions remain in `syncing` with no subject exposed by `GET /users`; retry after the sandbox service completes them.
-- [ ] Build the FinchNode patient Connect/consent flow, validate its live response shape, and normalize all relevant authorized record categories.
+- [ ] Complete a FinchNode sandbox Connect simulation and save its app-scoped subject. A third, freshly created session also stuck in `simulation.state: "syncing"` with `subject: null` even though its one-time sync completed — confirmed sandbox-side limitation, not a polling bug. Use `scripts/finchnode-start-session.mjs` / `scripts/finchnode-resolve-session.mjs` to retry; see `docs/FINCHNODE_HANDOFF.md`.
+- [x] Normalize FinchNode's authorized record categories (encounters, medications, labs, diagnostic reports, documents) and restrict returned evidence to records matching the paid provider and a pre-payment date window, so an unrelated sandbox record can never attach to the demo payment. Live end-to-end validation is still blocked on the subject above.
 - [ ] Add patient identity, account ownership, consent records, and authorization checks for every case and consequential action.
 - [ ] Replace local unencrypted case storage with protected per-patient storage and a retention/deletion policy before using real medical data. PostgreSQL/Prisma from the original proposal has not been implemented.
 - [ ] Add durable jobs, retries, and `WAITING_FOR_BILL` / `WAITING_FOR_PROVIDER` resume paths so cases progress when external responses arrive later.
@@ -51,8 +55,31 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 - [ ] Parse real provider statements or attachments and add a trustworthy financial reference source before making price claims.
 - [ ] Complete security, privacy, audit, and integration testing before removing the live-mode block or handling real patient information.
 
+## Voice and refund implementation (Desktop checkout)
+
+- [x] Add two rehearsable fictional conversations: request the statement, then challenge the specialist charge; browser speech, transcript, replay, cancellation, and wrap-up controls are implemented.
+- [x] Require explicit authorization at the bill-collection API boundary as well as the billing-review boundary.
+- [x] Add a demo-only plain-text statement inbox with provider matching and manual-delivery rehearsal mode.
+- [x] Keep a provider-approved refund pending until a separately matched synthetic credit; reject duplicate credits and corrections that do not reconcile with the bill.
+- [x] Add optional sourced price-reference matching with provider, procedure code, validity dates, basis, and source attribution. No fabricated prices are bundled.
+- [ ] Verify audible browser playback, layout, and the four-minute rehearsal; browser automation was blocked by unavailable policy verification.
+- [ ] Supply curated, comparable reference rates for the demo procedures; most current fixture items have no procedure code.
+- [ ] Connect the Nessie detection event to a consented agent job rather than only opening a case; implement provider-specific hospital verification and polling if no native webhook exists.
+- [x] Verify Stable Photon project access through Node and register the two user-approved shared-line demo recipients; routing IDs stay in ignored `.env.local`. SIP voice transport is still pending.
+- [ ] Implement signed, durable inbound messaging and outbound notifications; the current inbox and notifications are local simulations.
+- [ ] Implement an actual voice transport and audio agent, written external refund confirmation, bank-credit verification, and authorized dispute submission. Browser speech does not dial a provider.
+
 ## Current scope decisions
 
 - The app uses SQLite, not PostgreSQL/Prisma, to keep the local demo simple.
 - The workflow uses deterministic state transitions; OpenAI currently helps with the final wording only. It does not plan or invoke external actions.
 - No bank chargeback is initiated. Provider billing review comes first.
+
+## Insurance and source-backed pricing update
+
+- [x] Preserve statement patient responsibility and insurance adjustments separately from gross charges.
+- [x] Add final-EOB reconciliation, pending/missing-information states, payer/plan-aware rate matching, and billing-context checks.
+- [x] Require insurance reprocessing after an insured gross-charge correction; never promise the gross correction as the patient's refund.
+- [x] Import 1,080 published cash/negotiated snapshot rows for four selected codes, with provenance and methodology; expose a reference catalog without assigning these to fictional services or assuming current contract validity.
+- [ ] Validate actual service codes, billing units/modifiers, provider identity, setting/component, payer/plan, and date applicability before converting public snapshot rows into exact comparison references.
+- [ ] Complete revised-EOB intake and bank-credit allocation tracking for an insured refund; noncovered services, balance billing, financial assistance, bundles, and special benefit rules still require review.
