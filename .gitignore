@@ -10,3 +10,4 @@ data/
 spacetimedb/node_modules/
 dist/
 .wrangler/
+spacetime.local.json
