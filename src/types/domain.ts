@@ -2,7 +2,7 @@ export type CaseStatus = "DETECTED" | "FETCHING_RECORDS" | "REQUESTING_BILL" | "
 export type ClinicalStatus = "SUPPORTED" | "PARTIALLY_SUPPORTED" | "NO_MATCH_FOUND" | "DUPLICATE_SUSPECTED" | "DATE_MISMATCH" | "AMOUNT_REVIEW" | "INSUFFICIENT_DATA";
 
 export interface Transaction { id: string; merchant: string; amount: number; date: string; category?: string }
-export interface MedicalRecord { id: string; type: "encounter" | "imaging" | "procedure" | "medication" | "document"; description: string; date: string; provider: string }
+export interface MedicalRecord { id: string; type: "encounter" | "imaging" | "procedure" | "medication" | "lab" | "document"; description: string; date: string; provider: string }
 export interface BillItem { id: string; description: string; code?: string; amount: number; serviceDate: string }
 export interface ItemizedBill { invoiceId: string; provider: string; total: number; items: BillItem[] }
 export interface Finding { billItemId: string; description: string; amount: number; clinicalStatus: ClinicalStatus; pricingStatus: "NOT_ASSESSED" | "REVIEW"; confidence: number; evidence: string[]; explanation: string; action: "NONE" | "REQUEST_REVIEW" }

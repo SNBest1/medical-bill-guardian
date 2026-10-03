@@ -48,6 +48,8 @@ Copy `.env.example` to `.env` for local configuration; both `.env` and `.env.loc
 
 The Relay CLI is pinned as a project-local development dependency. After `npm ci`, use `./node_modules/.bin/relay --help`. A staging agent named `medical_bill_guardian` was created through this CLI; its token is stored only in the ignored local `.env` and Relay's private CLI profile. Agent creation alone does not send messages or enable live mode.
 
+For this checkout, a synthetic Nessie customer, account, University Hospital merchant, and $4,820 purchase have been created and verified through the sandbox read endpoints. Their IDs and key remain in the ignored local `.env`; a fresh clone must supply its own sandbox credentials and records. The FinchNode sandbox key was validated, but its synthetic Connect sessions are still reporting `syncing` and have not issued an app-scoped subject. The public FinchNode demo record was used only to validate the adapter's normalized field mapping. These separate synthetic sources do not establish that the FinchNode patient had the University Hospital visit shown in the local mock story.
+
 ## API
 
 `GET /api/transactions`, `POST /api/transactions/scan`, `GET|POST /api/cases`, `GET /api/cases/:id`, `POST /api/cases/:id/run`, `POST /api/cases/:id/analyze`, `POST /api/cases/:id/request-review`, `POST /api/cases/:id/notify`, and read-only medical-record, communication, and timeline routes under `/api/cases/:id/`. `analyze` returns `202` while the requested statement is pending.

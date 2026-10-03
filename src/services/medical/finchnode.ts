@@ -1,15 +1,15 @@
 import type { MedicalRecord, Transaction } from "../../types/domain";
 import type { MedicalRecordProvider } from "./provider";
 
-type FinchEntry = { id?: string; name?: string; description?: string; title?: string; date?: string; startDate?: string; createdDate?: string; issuedDate?: string; sourceName?: string };
+type FinchEntry = { id?: string; name?: string; description?: string; title?: string; type?: string; date?: string; startDate?: string; createdDate?: string; issuedDate?: string; effectiveDate?: string; sourceName?: string };
 type FinchSnapshot = { data?: Record<string, FinchEntry[] | undefined> };
 
 /** Converts consent-filtered FinchNode records into only the clinical evidence needed for matching. */
 export function normalizeFinchRecords(snapshot: FinchSnapshot): MedicalRecord[] {
-  const categories: Array<[string, MedicalRecord["type"]]> = [["encounters", "encounter"], ["medicationAdministrations", "medication"], ["diagnosticReports", "imaging"], ["documents", "document"]];
+  const categories: Array<[string, MedicalRecord["type"]]> = [["encounters", "encounter"], ["medications", "medication"], ["medicationAdministrations", "medication"], ["labs", "lab"], ["diagnosticReports", "document"], ["documents", "document"]];
   return categories.flatMap(([category, type]) => (snapshot.data?.[category] ?? []).flatMap((entry) => {
-    const date = (entry.date || entry.startDate || entry.createdDate || entry.issuedDate || "").slice(0, 10);
-    const description = entry.description || entry.name || entry.title;
+    const date = (entry.date || entry.startDate || entry.effectiveDate || entry.createdDate || entry.issuedDate || "").slice(0, 10);
+    const description = entry.description || entry.name || entry.title || (type === "encounter" ? entry.type : undefined);
     if (!entry.id || !description || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return [];
     return [{ id: entry.id, type, description, date, provider: entry.sourceName || "Unknown provider" }];
   }));

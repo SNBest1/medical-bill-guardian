@@ -37,7 +37,10 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 - [x] Obtain the Relay staging CLI/API documentation and identify its Agent Token, handles, messaging, calls, and webhook capabilities.
 - [x] Install the Relay CLI as an exact, project-local dependency and create the staging `medical_bill_guardian` agent without committing its token.
 - [ ] Implement and test a Relay `CommunicationProvider` for a participating provider handle, and handle asynchronous billing responses. The documented call feature reaches a Relay chat participant; ordinary hospital phone dialing is not established.
-- [ ] Connect and validate Nessie credentials, customer/account mapping, merchant data, and healthcare transaction detection against the chosen sandbox.
+- [x] Validate Nessie sandbox credentials and create one synthetic customer, checking account, University Hospital merchant, and $4,820 purchase. Confirm the account/purchase/merchant read path used by the adapter; IDs stay in the ignored `.env`.
+- [ ] Connect the synthetic Nessie purchase to a case through a protected, authenticated live workflow; the current app deliberately blocks live case routes.
+- [x] Validate the FinchNode sandbox key and app categories, attempt synthetic Connect sessions, and test normalized record field mapping against FinchNode's public synthetic API.
+- [ ] Complete a FinchNode sandbox Connect simulation and save its app-scoped subject. Two sessions remain in `syncing` with no subject exposed by `GET /users`; retry after the sandbox service completes them.
 - [ ] Build the FinchNode patient Connect/consent flow, validate its live response shape, and normalize all relevant authorized record categories.
 - [ ] Add patient identity, account ownership, consent records, and authorization checks for every case and consequential action.
 - [ ] Replace local unencrypted case storage with protected per-patient storage and a retention/deletion policy before using real medical data. PostgreSQL/Prisma from the original proposal has not been implemented.
