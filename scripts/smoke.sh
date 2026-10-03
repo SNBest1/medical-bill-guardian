@@ -6,11 +6,14 @@ DB="mbg-smoke"
 # Own port so a running app or `spacetime start` on 3000 does not interfere.
 ADDR="127.0.0.1:3100"
 SERVER="http://$ADDR"
+# Another server on this port would silently receive every call below; refuse to run against it.
+if curl -sf "$SERVER/v1/ping" >/dev/null 2>&1; then echo "SMOKE FAIL: $ADDR is already in use; stop that server first" >&2; exit 1; fi
 DATA_DIR="$(mktemp -d)"
 spacetime start --listen-addr "$ADDR" --data-dir "$DATA_DIR" >"$DATA_DIR/server.log" 2>&1 &
 SERVER_PID=$!
 trap 'kill $SERVER_PID 2>/dev/null; rm -rf "$DATA_DIR"' EXIT
 for _ in $(seq 1 30); do curl -sf "$SERVER/v1/ping" >/dev/null 2>&1 && break; sleep 0.5; done
+kill -0 "$SERVER_PID" 2>/dev/null || { echo "SMOKE FAIL: local server did not start; see $DATA_DIR/server.log" >&2; exit 1; }
 
 call() { spacetime call -y -s "$SERVER" "$DB" "$@"; }
 sql() { spacetime sql -y -s "$SERVER" "$DB" "$1"; }
