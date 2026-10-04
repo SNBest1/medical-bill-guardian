@@ -11,7 +11,7 @@ export type TextSender = (phone: string, text: string) => Promise<string>;
 
 /** Fixed templates only: arbitrary patient text is never echoed back. */
 function replyText(outcome: Awaited<ReturnType<typeof runAgentCommand>>): string {
-  if (outcome.kind === "started") return `On it - investigating ${outcome.scenario.patient.firstName}'s hospital bill.`;
+  if (outcome.kind === "started") return `Starting the investigation into ${outcome.scenario.patient.firstName}'s hospital bill now.`;
   const names = (outcome.kind === "ambiguous" ? outcome.options : scenarios).map((scenario) => scenario.patient.firstName);
   return `Which bill: ${names.join(" or ")}?`;
 }
