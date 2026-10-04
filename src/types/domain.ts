@@ -2,7 +2,7 @@ export type CaseStatus = "DETECTED" | "FETCHING_RECORDS" | "REQUESTING_BILL" | "
 export type ClinicalStatus = "SUPPORTED" | "PARTIALLY_SUPPORTED" | "NO_MATCH_FOUND" | "DUPLICATE_SUSPECTED" | "DATE_MISMATCH" | "AMOUNT_REVIEW" | "INSUFFICIENT_DATA";
 
 export interface Transaction { id: string; merchant: string; amount: number; date: string; category?: string }
-export interface MedicalRecord { id: string; type: "encounter" | "imaging" | "procedure" | "medication" | "lab" | "document"; description: string; date: string; provider: string }
+export interface MedicalRecord { id: string; type: "encounter" | "imaging" | "procedure" | "medication" | "lab" | "document" | "vital"; description: string; date: string; provider: string; /** FinchNode category the record came from (for example "labs" or "diagnosticReports"); absent on hand-written fixtures. */ category?: string }
 export interface BillItem { id: string; description: string; code?: string; amount: number; serviceDate: string; units?: number; setting?: "INPATIENT" | "OUTPATIENT"; component?: "FACILITY" | "PROFESSIONAL" | "GLOBAL"; modifiers?: string[] }
 export interface ItemizedBill { invoiceId: string; provider: string; patient?: string; total: number; patientResponsibility?: number; insuranceAdjustments?: number; items: BillItem[] }
 export interface ExplanationOfBenefits { invoiceId: string; serviceDate: string; billedTotal: number; allowedTotal: number; contractualAdjustment: number; insurerPaid: number; otherPayerPaid: number; deductible: number; copay: number; coinsurance: number; noncovered: number; patientResponsibility: number }
@@ -20,5 +20,18 @@ export interface ReadingStep { id: string; at: string; kind: "received" | "verif
 /** Live log of the agent reading a hospital-texted PDF bill; written incrementally so case polling shows it as it happens. */
 export interface BillReading { startedAt: string; steps: ReadingStep[]; done: boolean; failed?: boolean }
 /** Where the case's medical records came from; `live` is false for synthetic scenario data. */
-export interface RecordSource { label: string; live: boolean }
+export interface RecordSource {
+  label: string;
+  live: boolean;
+  /** FinchNode subject the records were read for (a public synthetic demo patient). */
+  subject?: string;
+  /** When the records were read (live pull) or when the saved copy was used. */
+  retrievedAt?: string;
+  /** Organization named by the records themselves, for example "Northstar Health System". */
+  organization?: string;
+  /** Records kept for this case's encounter window, by FinchNode category. */
+  counts?: Record<string, number>;
+  /** Why the saved copy was used instead of a live pull. Present only on a fallback. */
+  fallbackReason?: string;
+}
 export interface MedicalBillCase { id: string; scenarioId?: string; status: CaseStatus; transaction: Transaction; provider: { name: string }; medicalRecords: MedicalRecord[]; recordSource?: RecordSource; reading?: BillReading; bill: ItemizedBill | null; findings: Finding[]; insurance?: InsuranceContext; financialReview?: FinancialReview; communications: Communication[]; timeline: TimelineEvent[]; auditLog: AuditEntry[]; resolution: Resolution | null; recovery?: Recovery; summary: string | null; createdAt: string; updatedAt: string }

@@ -1,0 +1,383 @@
+{
+ "_fixture": {
+  "note": "Trimmed copy of a real response from the keyless FinchNode public demo API. Used only as the offline fallback and in tests.",
+  "endpoint": "GET https://api.finchnode.com/demo/v1/users/patient-demo-pediatric-asthma/records",
+  "savedAt": "2026-10-04",
+  "dataAsOf": "2026-09-01T00:00:00Z",
+  "trimmed": true
+ },
+ "id": "patient-demo-pediatric-asthma",
+ "object": "health_record",
+ "synthetic": true,
+ "environment": "demo",
+ "data": {
+  "demographics": {
+   "name": "Theo Abernathy",
+   "birthDate": "2017-06-11",
+   "gender": "male"
+  },
+  "encounters": [
+   {
+    "type": "Well-child visit",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2018-06-12T15:00:00Z",
+    "id": "rec_e21ffe736f43c128e3bf82ca",
+    "sourceRecordId": "Encounter/pediatric-asthma-demo-encounter-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Well-child visit",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2019-06-18T15:00:00Z",
+    "id": "rec_b1c91c1e561876d350cb7c06",
+    "sourceRecordId": "Encounter/pediatric-asthma-demo-encounter-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Well-child visit",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2020-06-16T15:00:00Z",
+    "id": "rec_ff3d5e752af7db3ee141bac2",
+    "sourceRecordId": "Encounter/pediatric-asthma-demo-encounter-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Well-child visit",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2021-06-15T15:00:00Z",
+    "id": "rec_5184ccaf176a59fe4948b13c",
+    "sourceRecordId": "Encounter/pediatric-asthma-demo-encounter-4",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Well-child visit",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2022-06-14T15:00:00Z",
+    "id": "rec_91f52d6a39334aa9b91e1483",
+    "sourceRecordId": "Encounter/pediatric-asthma-demo-encounter-5",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Well-child visit",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2023-06-13T15:00:00Z",
+    "id": "rec_8b99707565f159af49cc5d01",
+    "sourceRecordId": "Encounter/pediatric-asthma-demo-encounter-6",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Well-child visit",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2024-06-11T15:00:00Z",
+    "id": "rec_1a0a66d81af98f33396f842e",
+    "sourceRecordId": "Encounter/pediatric-asthma-demo-encounter-7",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Acute asthma exacerbation",
+    "status": "finished",
+    "class": "EMER",
+    "startDate": "2024-11-03T15:00:00Z",
+    "id": "rec_8a89a80cadf573a658172e8c",
+    "sourceRecordId": "Encounter/pediatric-asthma-demo-encounter-8",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Asthma follow-up",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2025-03-22T15:00:00Z",
+    "id": "rec_648d032468d74cfe14eb6c49",
+    "sourceRecordId": "Encounter/pediatric-asthma-demo-encounter-9",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Well-child visit",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2025-06-10T15:00:00Z",
+    "id": "rec_0e3f7282be09fcc33a2ef187",
+    "sourceRecordId": "Encounter/pediatric-asthma-demo-encounter-10",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "diagnosticReports": [],
+  "labs": [
+   {
+    "name": "IgE [Units/volume] in Serum or Plasma",
+    "value": "412",
+    "unit": "k[IU]/L",
+    "status": "final",
+    "date": "2024-11-10T16:00:00Z",
+    "id": "rec_597b3cc6df62904ef7bbf6d5",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-lab-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Eosinophils [#/volume] in Blood",
+    "value": "0.7",
+    "unit": "10*3/uL",
+    "status": "final",
+    "date": "2024-11-10T16:00:00Z",
+    "id": "rec_84d156a2d4f443d0d9b2bb50",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-lab-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Peanut IgE Ab [Units/volume] in Serum",
+    "value": "15.2",
+    "unit": "k[IU]/L",
+    "status": "final",
+    "date": "2024-11-10T16:00:00Z",
+    "id": "rec_5a30bd8d6bbdf7ef51f2ed5d",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-lab-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "medications": [
+   {
+    "name": "NDA021457 200 ACTUAT albuterol 0.09 MG/ACTUAT Metered Dose Inhaler",
+    "status": "active",
+    "startDate": "2025-03-22",
+    "id": "rec_471ec501ebab480f51a12fca",
+    "sourceRecordId": "MedicationRequest/pediatric-asthma-demo-medication-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "120 ACTUAT fluticasone propionate 0.044 MG/ACTUAT Metered Dose Inhaler",
+    "status": "active",
+    "startDate": "2025-03-22",
+    "id": "rec_775653dd34d652e1a893305e",
+    "sourceRecordId": "MedicationRequest/pediatric-asthma-demo-medication-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "montelukast 5 MG Chewable Tablet",
+    "status": "active",
+    "startDate": "2025-06-10",
+    "id": "rec_49a582f618c5f03cbf692821",
+    "sourceRecordId": "MedicationRequest/pediatric-asthma-demo-medication-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "cetirizine hydrochloride 5 MG Oral Tablet",
+    "status": "active",
+    "startDate": "2025-06-10",
+    "id": "rec_c208f7f25e26c9da2ef65ddd",
+    "sourceRecordId": "MedicationRequest/pediatric-asthma-demo-medication-4",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "medicationAdministrations": [],
+  "vitals": [
+   {
+    "name": "Body weight",
+    "value": "9.4",
+    "unit": "kg",
+    "status": "final",
+    "date": "2018-06-12T15:10:00Z",
+    "id": "rec_ac6dde82ed70316f5d3bef8f",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body height",
+    "value": "75.7",
+    "unit": "cm",
+    "status": "final",
+    "date": "2018-06-12T15:10:00Z",
+    "id": "rec_44d7d93740a0f26aa374685f",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "12.2",
+    "unit": "kg",
+    "status": "final",
+    "date": "2019-06-18T15:10:00Z",
+    "id": "rec_a710638690f0c6a4087f41fb",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body height",
+    "value": "86.7",
+    "unit": "cm",
+    "status": "final",
+    "date": "2019-06-18T15:10:00Z",
+    "id": "rec_1ab8a3b7aaf8e7b767dcf851",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-4",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "14.3",
+    "unit": "kg",
+    "status": "final",
+    "date": "2020-06-16T15:10:00Z",
+    "id": "rec_3f3c51ddc413f256368766b8",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-5",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body height",
+    "value": "96.5",
+    "unit": "cm",
+    "status": "final",
+    "date": "2020-06-16T15:10:00Z",
+    "id": "rec_9f572f37225dcf5f74c26b7f",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-6",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "16.5",
+    "unit": "kg",
+    "status": "final",
+    "date": "2021-06-15T15:10:00Z",
+    "id": "rec_8ca7cccb2593fcd783c17d9c",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-7",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body height",
+    "value": "103",
+    "unit": "cm",
+    "status": "final",
+    "date": "2021-06-15T15:10:00Z",
+    "id": "rec_c63b3987a0f99b7ad73bf94b",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-8",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "18.4",
+    "unit": "kg",
+    "status": "final",
+    "date": "2022-06-14T15:10:00Z",
+    "id": "rec_1a9847beed94b0e08027348a",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-9",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body height",
+    "value": "109.5",
+    "unit": "cm",
+    "status": "final",
+    "date": "2022-06-14T15:10:00Z",
+    "id": "rec_9f8b71616709bfed8fddc7db",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-10",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "20.9",
+    "unit": "kg",
+    "status": "final",
+    "date": "2023-06-13T15:10:00Z",
+    "id": "rec_2160479d72e424979058bce2",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-11",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body height",
+    "value": "115.5",
+    "unit": "cm",
+    "status": "final",
+    "date": "2023-06-13T15:10:00Z",
+    "id": "rec_7b16fd8428851cf8f094722f",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-12",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "23.4",
+    "unit": "kg",
+    "status": "final",
+    "date": "2024-06-11T15:10:00Z",
+    "id": "rec_6912a40699a0e7e7a0cc967f",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-13",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body height",
+    "value": "122.4",
+    "unit": "cm",
+    "status": "final",
+    "date": "2024-06-11T15:10:00Z",
+    "id": "rec_64e167f4fdcb0c232a902fc2",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-14",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Oxygen saturation in Arterial blood by Pulse oximetry",
+    "value": "94",
+    "unit": "%",
+    "status": "final",
+    "date": "2024-11-03T15:10:00Z",
+    "id": "rec_8e1edf0bb593c4e3cc7bed28",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-15",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Respiratory rate",
+    "value": "30",
+    "unit": "/min",
+    "status": "final",
+    "date": "2024-11-03T15:10:00Z",
+    "id": "rec_b638961f871e4959e14a1ecc",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-16",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Oxygen saturation in Arterial blood by Pulse oximetry",
+    "value": "97",
+    "unit": "%",
+    "status": "final",
+    "date": "2025-03-22T15:10:00Z",
+    "id": "rec_4aedd4b5bf290c9f46531b40",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-17",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Respiratory rate",
+    "value": "22",
+    "unit": "/min",
+    "status": "final",
+    "date": "2025-03-22T15:10:00Z",
+    "id": "rec_e4a0c4ebe51eb3bf3c7e4faf",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-18",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "26.8",
+    "unit": "kg",
+    "status": "final",
+    "date": "2025-06-10T15:10:00Z",
+    "id": "rec_46e21b67347eb6eff141065b",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-19",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body height",
+    "value": "128.4",
+    "unit": "cm",
+    "status": "final",
+    "date": "2025-06-10T15:10:00Z",
+    "id": "rec_6062e586c97f29ce4bc8fc32",
+    "sourceRecordId": "Observation/pediatric-asthma-demo-vital-20",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "documents": []
+ }
+}

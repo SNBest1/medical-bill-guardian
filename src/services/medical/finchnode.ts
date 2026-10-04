@@ -4,6 +4,9 @@ import type { MedicalRecordProvider } from "./provider";
 type FinchEntry = { id?: string; name?: string; description?: string; title?: string; type?: string; date?: string; startDate?: string; createdDate?: string; issuedDate?: string; effectiveDate?: string; sourceName?: string; category?: string };
 export type FinchSnapshot = { data?: Record<string, FinchEntry[] | undefined> };
 
+/** FinchNode categories this app reads as clinical evidence, in display order. Claims are deliberately absent. */
+export const EVIDENCE_CATEGORIES = ["encounters", "diagnosticReports", "labs", "medicationAdministrations", "medications", "vitals", "documents", "procedures"] as const;
+
 /** The consented subject is missing or not yet resolved from a completed Connect session. */
 export class FinchNodeConfigError extends Error {}
 /** The patient revoked or let expire the consent that authorized this read (FinchNode 410 consent_inactive). */
@@ -13,14 +16,15 @@ const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9 ]/g, 
 
 /** Converts consent-filtered FinchNode records into only the clinical evidence needed for matching. Claims are never included: they are billing artifacts, not proof of care. */
 export function normalizeFinchRecords(snapshot: FinchSnapshot): MedicalRecord[] {
-  const categories: Array<[string, MedicalRecord["type"]]> = [["encounters", "encounter"], ["medications", "medication"], ["medicationAdministrations", "medication"], ["labs", "lab"], ["diagnosticReports", "document"], ["documents", "document"], ["procedures", "procedure"]];
+  const categories: Array<[string, MedicalRecord["type"]]> = [["encounters", "encounter"], ["medications", "medication"], ["medicationAdministrations", "medication"], ["labs", "lab"], ["diagnosticReports", "document"], ["documents", "document"], ["procedures", "procedure"], ["vitals", "vital"]];
   return categories.flatMap(([category, defaultType]) => (snapshot.data?.[category] ?? []).flatMap((entry) => {
-    // A diagnostic report that FinchNode categorizes as imaging/radiology is imaging evidence, not a generic document.
-    const type: MedicalRecord["type"] = category === "diagnosticReports" && /^(imaging|radiology)$/i.test(entry.category ?? "") ? "imaging" : defaultType;
+    // A diagnostic report that FinchNode categorizes as imaging/radiology is imaging evidence; a laboratory report is lab evidence.
+    const reportKind = category === "diagnosticReports" ? entry.category ?? "" : "";
+    const type: MedicalRecord["type"] = /^(imaging|radiology)$/i.test(reportKind) ? "imaging" : /^(laboratory|chemistry|hematology|pathology)$/i.test(reportKind) ? "lab" : defaultType;
     const date = (entry.date || entry.startDate || entry.effectiveDate || entry.createdDate || entry.issuedDate || "").slice(0, 10);
     const description = entry.description || entry.name || entry.title || (type === "encounter" ? entry.type : undefined);
     if (!entry.id || !description || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return [];
-    return [{ id: entry.id, type, description, date, provider: entry.sourceName || "Unknown provider" }];
+    return [{ id: entry.id, type, description, date, provider: entry.sourceName || "Unknown provider", category }];
   }));
 }
 
@@ -39,6 +43,20 @@ export function matchesEncounterContext(record: MedicalRecord, transaction: Tran
   if (Number.isNaN(paid) || Number.isNaN(recordDate)) return false;
   const daysBeforePayment = (paid - recordDate) / 86400000;
   return (provider.includes(merchant) || merchant.includes(provider)) && daysBeforePayment >= 0 && daysBeforePayment <= 14;
+}
+
+/**
+ * Same provider rule as matchesEncounterContext, but the record must fall within `days` of the
+ * service date on either side. Used for FinchNode demo patients, where the payment date is the
+ * service date and a patient's other visits (years of history) must never count as evidence.
+ */
+export function matchesServiceWindow(record: MedicalRecord, merchant: string, serviceDate: string, days = 1): boolean {
+  const paid = Date.parse(`${serviceDate}T00:00:00Z`);
+  const recordDate = Date.parse(`${record.date}T00:00:00Z`);
+  if (Number.isNaN(paid) || Number.isNaN(recordDate)) return false;
+  const name = normalize(merchant);
+  const provider = normalize(record.provider);
+  return (provider.includes(name) || name.includes(provider)) && Math.abs(paid - recordDate) / 86400000 <= days;
 }
 
 export class FinchNodeProvider implements MedicalRecordProvider {

@@ -1,0 +1,438 @@
+{
+ "_fixture": {
+  "note": "Trimmed copy of a real response from the keyless FinchNode public demo API. Used only as the offline fallback and in tests.",
+  "endpoint": "GET https://api.finchnode.com/demo/v1/users/patient-demo-001/records",
+  "savedAt": "2026-10-04",
+  "dataAsOf": "2026-08-25T17:00:00Z",
+  "trimmed": true
+ },
+ "id": "patient-demo-001",
+ "object": "health_record",
+ "synthetic": true,
+ "environment": "demo",
+ "data": {
+  "demographics": {
+   "name": "Morgan Rivera",
+   "birthDate": "1988-04-17",
+   "gender": "female"
+  },
+  "encounters": [
+   {
+    "type": "Annual wellness visit",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2026-07-18T16:00:00Z",
+    "id": "rec_1caa8ec82b5aed3c83bc1f46",
+    "sourceRecordId": "Encounter/encounter-demo-001",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "diagnosticReports": [
+   {
+    "name": "Synthetic metabolic monitoring panel",
+    "code": "metabolic-monitoring",
+    "status": "final",
+    "category": "Chemistry",
+    "effectiveDate": "2026-07-18T15:30:00Z",
+    "issuedDate": "2026-07-18T17:00:00Z",
+    "id": "rec_7ea9e3f7b05f6cdb6bef7dd6",
+    "sourceRecordId": "DiagnosticReport/diagnostic-report-demo-001",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "labs": [
+   {
+    "name": "Hemoglobin A1c",
+    "value": "6.4",
+    "unit": "%",
+    "status": "final",
+    "date": "2026-07-18T15:30:00Z",
+    "id": "rec_e7684bfafc242aedaaed7a68",
+    "sourceRecordId": "Observation/observation-demo-a1c",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "LDL cholesterol",
+    "value": "92",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-07-18T15:30:00Z",
+    "id": "rec_1df53aed4ceb6365aa76efbb",
+    "sourceRecordId": "Observation/observation-demo-ldl",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Hemoglobin A1c",
+    "value": "7.1",
+    "unit": "%",
+    "status": "final",
+    "date": "2026-01-18T15:30:00Z",
+    "id": "rec_1634684ca4ccef99934d783f",
+    "sourceRecordId": "Observation/observation-demo-a1c-jan",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "LDL cholesterol",
+    "value": "116",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-01-18T15:30:00Z",
+    "id": "rec_9f509d949cb7fb27fe65f5e9",
+    "sourceRecordId": "Observation/observation-demo-ldl-jan",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Hemoglobin A1c",
+    "value": "6.8",
+    "unit": "%",
+    "status": "final",
+    "date": "2026-04-18T15:30:00Z",
+    "id": "rec_94162b6fdf1d301d807c0dd7",
+    "sourceRecordId": "Observation/observation-demo-a1c-apr",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "LDL cholesterol",
+    "value": "104",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-04-18T15:30:00Z",
+    "id": "rec_3f59762ca3348d0a3ce1f946",
+    "sourceRecordId": "Observation/observation-demo-ldl-apr",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Glucose",
+    "value": "112",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-01-18T15:30:00Z",
+    "id": "rec_efd713d03d16de4a352547c4",
+    "sourceRecordId": "Observation/observation-demo-glucose-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Glucose",
+    "value": "106",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-04-18T15:30:00Z",
+    "id": "rec_e41ca33ed46a77bd39326a5e",
+    "sourceRecordId": "Observation/observation-demo-glucose-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Glucose",
+    "value": "98",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-07-18T15:30:00Z",
+    "id": "rec_825b22849e5d96a98ccfc0bc",
+    "sourceRecordId": "Observation/observation-demo-glucose-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Creatinine",
+    "value": "0.92",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-01-18T15:30:00Z",
+    "id": "rec_46c71ba3969bd926b410bbbb",
+    "sourceRecordId": "Observation/observation-demo-creatinine-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Creatinine",
+    "value": "0.9",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-04-18T15:30:00Z",
+    "id": "rec_19fbc2abbe4863d03c026a33",
+    "sourceRecordId": "Observation/observation-demo-creatinine-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Creatinine",
+    "value": "0.88",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-07-18T15:30:00Z",
+    "id": "rec_f458f7825d1f184df3e47fee",
+    "sourceRecordId": "Observation/observation-demo-creatinine-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Potassium",
+    "value": "4.1",
+    "unit": "mmol/L",
+    "status": "final",
+    "date": "2026-01-18T15:30:00Z",
+    "id": "rec_14b05ec0712a845cda8f70ba",
+    "sourceRecordId": "Observation/observation-demo-potassium-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Potassium",
+    "value": "4.2",
+    "unit": "mmol/L",
+    "status": "final",
+    "date": "2026-04-18T15:30:00Z",
+    "id": "rec_6fa6bed5ce2c65945fa302aa",
+    "sourceRecordId": "Observation/observation-demo-potassium-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Potassium",
+    "value": "4.3",
+    "unit": "mmol/L",
+    "status": "final",
+    "date": "2026-07-18T15:30:00Z",
+    "id": "rec_40ce30412de9daddce03fd67",
+    "sourceRecordId": "Observation/observation-demo-potassium-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Hemoglobin",
+    "value": "13.2",
+    "unit": "g/dL",
+    "status": "final",
+    "date": "2026-01-18T15:30:00Z",
+    "id": "rec_385722767b9e3c8d18dc24e5",
+    "sourceRecordId": "Observation/observation-demo-hemoglobin-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Hemoglobin",
+    "value": "13.4",
+    "unit": "g/dL",
+    "status": "final",
+    "date": "2026-04-18T15:30:00Z",
+    "id": "rec_0902dd441d34827afd89534b",
+    "sourceRecordId": "Observation/observation-demo-hemoglobin-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Hemoglobin",
+    "value": "13.6",
+    "unit": "g/dL",
+    "status": "final",
+    "date": "2026-07-18T15:30:00Z",
+    "id": "rec_d29022a9a97f645be711d0f7",
+    "sourceRecordId": "Observation/observation-demo-hemoglobin-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "medications": [
+   {
+    "name": "Metformin 500 mg tablet",
+    "status": "active",
+    "startDate": "2026-07-18",
+    "id": "rec_a81e05c4c049bf549c1e4fc5",
+    "sourceRecordId": "MedicationRequest/medication-demo-001",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Lisinopril 10 mg tablet",
+    "status": "active",
+    "startDate": "2026-07-18",
+    "id": "rec_1e13908b4661e1c29b507bf9",
+    "sourceRecordId": "MedicationRequest/medication-demo-002",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Metformin 500 mg tablet",
+    "status": "completed",
+    "startDate": "2026-01-18",
+    "id": "rec_773200bc6620b96ad02c3edf",
+    "sourceRecordId": "MedicationRequest/medication-demo-completed",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "medicationAdministrations": [
+   {
+    "name": "Metformin 500 mg tablet",
+    "status": "completed",
+    "date": "2026-07-18T16:00:00Z",
+    "id": "rec_9f610c7710d2b5ed95494c48",
+    "sourceRecordId": "MedicationAdministration/administration-demo-001",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "vitals": [
+   {
+    "name": "Blood pressure",
+    "value": "Systolic blood pressure: 124, Diastolic blood pressure: 78",
+    "unit": "mmHg",
+    "status": "final",
+    "date": "2026-07-18T16:04:00Z",
+    "id": "rec_2bec977b617503a02ed0265f",
+    "sourceRecordId": "Observation/observation-demo-bp",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "76",
+    "unit": "kg",
+    "status": "final",
+    "date": "2026-01-18T15:30:00Z",
+    "id": "rec_37ef014ad1d97d6ef3d936c2",
+    "sourceRecordId": "Observation/observation-demo-weight-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "75",
+    "unit": "kg",
+    "status": "final",
+    "date": "2026-04-18T15:30:00Z",
+    "id": "rec_8b688ea59448c8aa763b92f6",
+    "sourceRecordId": "Observation/observation-demo-weight-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "74",
+    "unit": "kg",
+    "status": "final",
+    "date": "2026-07-18T15:30:00Z",
+    "id": "rec_2daff1806267fd4ee93ad8dd",
+    "sourceRecordId": "Observation/observation-demo-weight-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body mass index",
+    "value": "27.9",
+    "unit": "kg/m2",
+    "status": "final",
+    "date": "2026-01-18T15:30:00Z",
+    "id": "rec_3eeb02462fedfd4f6e50fe92",
+    "sourceRecordId": "Observation/observation-demo-bmi-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body mass index",
+    "value": "27.5",
+    "unit": "kg/m2",
+    "status": "final",
+    "date": "2026-04-18T15:30:00Z",
+    "id": "rec_727e10845df60cd4bdfbe4b6",
+    "sourceRecordId": "Observation/observation-demo-bmi-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body mass index",
+    "value": "27.2",
+    "unit": "kg/m2",
+    "status": "final",
+    "date": "2026-07-18T15:30:00Z",
+    "id": "rec_134b35438d9c380b7dbfced4",
+    "sourceRecordId": "Observation/observation-demo-bmi-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "78",
+    "unit": "beats/min",
+    "status": "final",
+    "date": "2026-01-18T15:30:00Z",
+    "id": "rec_2b7b3e0b204d45195ed2afeb",
+    "sourceRecordId": "Observation/observation-demo-heart-rate-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "74",
+    "unit": "beats/min",
+    "status": "final",
+    "date": "2026-04-18T15:30:00Z",
+    "id": "rec_a4297273bca8f642093e7ec0",
+    "sourceRecordId": "Observation/observation-demo-heart-rate-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "72",
+    "unit": "beats/min",
+    "status": "final",
+    "date": "2026-07-18T15:30:00Z",
+    "id": "rec_fdb253d9063788e1b642493a",
+    "sourceRecordId": "Observation/observation-demo-heart-rate-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body temperature",
+    "value": "36.8",
+    "unit": "°C",
+    "status": "final",
+    "date": "2026-01-18T15:30:00Z",
+    "id": "rec_4f5fba2b29c579f2eb8e1414",
+    "sourceRecordId": "Observation/observation-demo-temperature-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body temperature",
+    "value": "36.7",
+    "unit": "°C",
+    "status": "final",
+    "date": "2026-04-18T15:30:00Z",
+    "id": "rec_a25cd25aa18ce3ae766aec02",
+    "sourceRecordId": "Observation/observation-demo-temperature-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body temperature",
+    "value": "36.9",
+    "unit": "°C",
+    "status": "final",
+    "date": "2026-07-18T15:30:00Z",
+    "id": "rec_e19cd378b0cec04e6e39cd40",
+    "sourceRecordId": "Observation/observation-demo-temperature-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Oxygen saturation",
+    "value": "97",
+    "unit": "%",
+    "status": "final",
+    "date": "2026-01-18T15:30:00Z",
+    "id": "rec_49911aa491afc1074fa1cdf8",
+    "sourceRecordId": "Observation/observation-demo-oxygen-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Oxygen saturation",
+    "value": "98",
+    "unit": "%",
+    "status": "final",
+    "date": "2026-04-18T15:30:00Z",
+    "id": "rec_8bd7b5a25e9298bc9e1a4be5",
+    "sourceRecordId": "Observation/observation-demo-oxygen-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Oxygen saturation",
+    "value": "98",
+    "unit": "%",
+    "status": "final",
+    "date": "2026-07-18T15:30:00Z",
+    "id": "rec_bce82770b8d8b57f80c63330",
+    "sourceRecordId": "Observation/observation-demo-oxygen-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "documents": [
+   {
+    "type": "Note",
+    "status": "current",
+    "documentStatus": "final",
+    "description": "Synthetic wellness visit note",
+    "createdDate": "2026-07-18T17:00:00Z",
+    "indexedDate": "2026-07-18T17:15:00Z",
+    "contentType": "text/plain; charset=utf-8",
+    "id": "rec_fffbb436766e96beba70c6df",
+    "sourceRecordId": "DocumentReference/document-demo-001",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ]
+ }
+}

@@ -1,6 +1,9 @@
 import type { Finding, ItemizedBill, MedicalRecord } from "../../types/domain";
+import { recipeTerms } from "../billing/recipes";
 
+/** Words that identify a billed service in a record name. A term starting with "=" must equal the whole record name. */
 const terms: Record<string, string[]> = {
+  ...recipeTerms,
   "Emergency room": ["emergency room", "er visit"],
   "CT scan": ["ct scan"],
   "X-ray": ["x-ray"],
@@ -17,7 +20,7 @@ export function reconcile(bill: ItemizedBill, records: MedicalRecord[]): Finding
     const duplicate = seen.has(key);
     seen.add(key);
     const words = terms[item.description] ?? [item.description.toLowerCase()];
-    const matches = records.filter((record) => words.some((word) => record.description.toLowerCase().includes(word)));
+    const matches = records.filter((record) => { const name = record.description.toLowerCase(); return words.some((word) => word.startsWith("=") ? name === word.slice(1) : name.includes(word)); });
     const dated = matches.filter((record) => record.date === item.serviceDate);
     const clinicalStatus = duplicate ? "DUPLICATE_SUSPECTED" : dated.length ? "SUPPORTED" : matches.length ? "DATE_MISMATCH" : records.length ? "NO_MATCH_FOUND" : "INSUFFICIENT_DATA";
     const evidence = dated.map((record) => `${record.description} (${record.date})`);
