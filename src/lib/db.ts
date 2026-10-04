@@ -16,6 +16,7 @@ export class CaseStore {
     this.db.exec("CREATE TABLE IF NOT EXISTS statement_inbox (message_id TEXT PRIMARY KEY, case_id TEXT NOT NULL, data TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', received_at TEXT NOT NULL, error TEXT)");
     this.db.exec("CREATE TABLE IF NOT EXISTS photon_outbox (operation_key TEXT PRIMARY KEY, status TEXT NOT NULL, message_id TEXT, updated_at TEXT NOT NULL)");
     this.db.exec("CREATE TABLE IF NOT EXISTS command_inbox (message_id TEXT PRIMARY KEY, status TEXT NOT NULL, received_at TEXT NOT NULL)");
+    this.db.exec("CREATE TABLE IF NOT EXISTS bill_link_inbox (message_id TEXT PRIMARY KEY, status TEXT NOT NULL, detail TEXT, received_at TEXT NOT NULL)");
     this.db.exec("CREATE TABLE IF NOT EXISTS case_authorizations (case_id TEXT PRIMARY KEY, scope TEXT NOT NULL, granted_at TEXT NOT NULL, expires_at TEXT NOT NULL)");
   }
 
@@ -108,6 +109,20 @@ export class CaseStore {
   /** Frees a claim whose work failed before any provider contact, so a redelivery can retry it. */
   releaseCommand(messageId: string): void {
     this.db.prepare("DELETE FROM command_inbox WHERE message_id = ? AND status = 'PROCESSING'").run(messageId);
+  }
+
+  /** Claims a hospital bill-link text by Spectrum message ID; false means it was already handled (redelivery). */
+  claimBillLink(messageId: string): boolean {
+    return this.db.prepare("INSERT OR IGNORE INTO bill_link_inbox (message_id, status, received_at) VALUES (?, 'PROCESSING', ?)").run(messageId, new Date().toISOString()).changes === 1;
+  }
+
+  /** Durable outcome of a bill-link text (APPLIED, UNMATCHED, REJECTED, FAILED). `detail` never contains a URL query string. */
+  finishBillLink(messageId: string, status: string, detail?: string): void {
+    this.db.prepare("UPDATE bill_link_inbox SET status = ?, detail = ? WHERE message_id = ?").run(status, detail ?? null, messageId);
+  }
+
+  billLink(messageId: string): { status: string; detail: string | null } | null {
+    return this.db.prepare("SELECT status, detail FROM bill_link_inbox WHERE message_id = ?").get(messageId) as { status: string; detail: string | null } | undefined ?? null;
   }
 
   beginText(key: string): boolean {
