@@ -2,9 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStore } from "@/lib/db";
 import { sendProgressUpdate } from "@/services/agent/progress-updates";
 import { communicationProvider } from "@/lib/providers";
-import { reviewCase, notifyCase } from "@/services/agent/orchestrator";
+import { reviewCase, notifyCase, scenarioIdOf } from "@/services/agent/orchestrator";
+import { fishConfigFromEnv, fishProblems, maskPhone } from "@/services/communications/fish-call";
+import { buildReviewVariables, reviewBrief } from "@/services/communications/fish-review";
 
 export const runtime = "nodejs";
+/** What the authorization panel shows before the user decides: whether the review will be a real call, and what it will say. */
+export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const current = getStore().get((await context.params).id);
+  if (!current) return NextResponse.json({ error: "Case not found" }, { status: 404 });
+  const config = fishConfigFromEnv();
+  if (!config?.reviewAgentId || !current.bill) return NextResponse.json({ live: false });
+  const problems = fishProblems(config);
+  let brief: string[] = [];
+  try { brief = reviewBrief(buildReviewVariables(current.provider.name, current.bill, current.findings, scenarioIdOf(current))); } catch { problems.push("this case has no questioned charge to brief the call"); }
+  return NextResponse.json({ live: true, ready: problems.length === 0, problems, brief, destination: maskPhone(config.toNumber) });
+}
+
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const store = getStore();
   const id = (await context.params).id;

@@ -21,6 +21,8 @@ export type FishDemoConfig = {
   hospitalPhone: string;
   /** The Guardian line the hospital is asked to text the bill link to (SPECTRUM_HOSPITAL_ASSIGNED_LINE). */
   guardianLine: string;
+  /** Published Fish agent that disputes a questioned charge (FISH_REVIEW_AGENT_ID). Without it the review stays a rehearsed script. */
+  reviewAgentId?: string;
 };
 
 export type FishDynamicVariables = Record<string, string>;
@@ -44,6 +46,7 @@ export function fishConfigFromEnv(env: Record<string, string | undefined> = proc
     toNumber: clean(env.FISH_TEST_TO_NUMBER),
     hospitalPhone: clean(env.DEMO_HOSPITAL_PHONE),
     guardianLine: clean(env.SPECTRUM_HOSPITAL_ASSIGNED_LINE),
+    reviewAgentId: clean(env.FISH_REVIEW_AGENT_ID) || undefined,
   };
   return config.apiKey && config.agentId && config.phoneNumberId && config.toNumber ? config : null;
 }

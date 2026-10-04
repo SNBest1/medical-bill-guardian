@@ -1,4 +1,4 @@
-import type { ItemizedBill, MedicalBillCase, MedicalRecord, RecordSource, Transaction } from "../../types/domain";
+import type { ItemizedBill, MedicalBillCase, MedicalRecord, RecordSource, Resolution, Transaction } from "../../types/domain";
 import type { MedicalRecordProvider } from "../medical/provider";
 import type { CommunicationProvider } from "../communications/provider";
 import { reconcile } from "../reconciliation/reconcile";
@@ -131,19 +131,53 @@ export async function reviewCase(current: MedicalBillCase, communications: Commu
   next.status = "CONTACTING_PROVIDER";
   const approvalEvent = next.timeline.find((event) => event.title === "Your approval is needed");
   if (approvalEvent) { approvalEvent.status = "complete"; approvalEvent.title = "You authorized billing review"; approvalEvent.detail = "Hospital billing may now verify the questioned charge"; }
-  const response = await communications.requestBillingReview(next.provider.name, current.bill.invoiceId, next.findings, next.insurance);
+  const response = await communications.requestBillingReview(next.provider.name, current.bill.invoiceId, next.findings, next.insurance, { caseId: next.id, attemptId: next.auditLog[0].id, scenarioId: scenarioIdOf(next), bill: current.bill });
   const resolution = response.resolution;
   if (![resolution.originalTotal, resolution.correctedTotal, resolution.adjustment].every((amount) => Number.isFinite(amount) && amount >= 0) || Math.abs(resolution.originalTotal - current.bill.total) > 0.01 || Math.abs(resolution.originalTotal - resolution.correctedTotal - resolution.adjustment) > 0.01) throw new Error("Provider correction does not reconcile with the itemized bill");
   next.communications.push(response.communication);
-  next.resolution = response.resolution;
-  if (next.insurance?.coverage === "INSURED" && response.resolution.adjustment > 0) {
+  if (response.resolution.result === "PROVIDER_REVIEW_PENDING") {
+    // A real call is in flight: the answer comes from its transcript (settleReviewCall), never from this request.
+    record(next, "REQUEST_REVIEW", "requestBillingReview", `${next.findings.filter((finding) => finding.action === "REQUEST_REVIEW").length} findings`, response.communication.result ?? "Review call queued", "Hospital call in progress", "Guardian is on the line with hospital billing. The outcome is recorded only when billing answers.", "Hospital billing");
+    next.status = "WAITING_FOR_PROVIDER";
+    return next;
+  }
+  applyReviewResolution(next, current.bill, response.resolution);
+  record(next, "REQUEST_REVIEW", "requestBillingReview", `${next.findings.filter((finding) => finding.action === "REQUEST_REVIEW").length} findings`, response.resolution.result, "Hospital billing responded", response.resolution.explanation, "Hospital billing");
+  next.status = "RESOLVED";
+  return next;
+}
+
+/** Records a provider's answer on the case: the resolution, plus a pending refund only for a self-pay demo correction. */
+function applyReviewResolution(next: MedicalBillCase, bill: ItemizedBill, resolution: Resolution) {
+  next.resolution = resolution;
+  if (next.insurance?.coverage === "INSURED" && resolution.adjustment > 0) {
     next.financialReview = { status: "REPROCESSING_REQUIRED", reasons: ["The provider corrected gross charges. Obtain a revised insurer EOB and provider patient balance before determining the patient's refund; deductible, copay, coinsurance, secondary payments, and benefit accumulators may change."] };
     delete next.recovery;
-  } else if (response.resolution.adjustment > 0 && process.env.DEMO_MODE !== "false" && isDemoTransaction(next.transaction)) {
-    next.recovery = { status: "REFUND_PENDING", amount: response.resolution.adjustment, confirmation: `DEMO-${current.bill.invoiceId}-REFUND`, simulated: true };
+  } else if (resolution.adjustment > 0 && process.env.DEMO_MODE !== "false" && isDemoTransaction(next.transaction)) {
+    next.recovery = { status: "REFUND_PENDING", amount: resolution.adjustment, confirmation: `DEMO-${bill.invoiceId}-REFUND`, simulated: true };
   }
-  record(next, "REQUEST_REVIEW", "requestBillingReview", `${next.findings.filter((finding) => finding.action === "REQUEST_REVIEW").length} findings`, response.resolution.result, "Hospital billing responded", response.resolution.explanation, "Hospital billing");
-  next.status = response.resolution.result === "PROVIDER_REVIEW_PENDING" ? "WAITING_FOR_PROVIDER" : "RESOLVED";
+}
+
+/**
+ * Reads the live review call. While it is in progress the transcript is copied onto the case so
+ * the page can show it as it happens; once it has ended the hospital's own words decide the
+ * outcome. An unclear call resolves as unchanged, never as a win.
+ */
+export async function settleReviewCall(current: MedicalBillCase, communications: CommunicationProvider): Promise<MedicalBillCase> {
+  if (current.status !== "WAITING_FOR_PROVIDER" || !current.bill) return current;
+  const call = current.communications.find((item) => item.type === "BILLING_REVIEW" && item.status === "PENDING" && item.sessionId);
+  if (!call || !communications.settleBillingReview) return current;
+  const settlement = await communications.settleBillingReview(call, current.bill, current.findings);
+  const next = structuredClone(current);
+  const saved = next.communications.find((item) => item.id === call.id)!;
+  saved.transcript = settlement.transcript;
+  next.updatedAt = new Date().toISOString();
+  if (!settlement.done) return next;
+  saved.status = "COMPLETED";
+  saved.result = settlement.resolution.explanation;
+  applyReviewResolution(next, current.bill, settlement.resolution);
+  record(next, "REVIEW_CALL_ENDED", "settleBillingReview", call.sessionId ?? call.id, settlement.resolution.result, "Hospital billing responded", settlement.resolution.explanation, "Hospital billing");
+  next.status = "RESOLVED";
   return next;
 }
 
