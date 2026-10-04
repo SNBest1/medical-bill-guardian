@@ -96,6 +96,10 @@ records_json='[{"kind":"encounter","description":"Synthetic urgent care visit","
 call ingest_external_case "$owner_identity" external-txn-1 'Example Clinic' 12300 2026-09-28 NESSIE_SANDBOX FINCHNODE_SANDBOX "$records_json"
 call ingest_external_case "$owner_identity" external-txn-1 'Example Clinic' 12300 2026-09-28 NESSIE_SANDBOX FINCHNODE_SANDBOX "$records_json"
 [ "$(sql "SELECT id FROM bill_case" | grep -cE '^\s*[0-9]+\s*$')" = "2" ] || fail "duplicate external transaction created another case"
+external_case_id=$(sql "SELECT id FROM bill_case WHERE transaction_id = 'external-txn-1'" | grep -oE '[0-9]+' | head -1)
+[ -n "$external_case_id" ] || fail "external case was not created"
+call investigate_case "$external_case_id" 2>/dev/null && fail "external case accepted synthetic medical evidence"
+[ "$(sql "SELECT id FROM medical_record WHERE case_id = $external_case_id" | grep -cE '^\s*[0-9]+\s*$')" = "1" ] || fail "external case gained mock records"
 call reset_demo
 [ "$(sql "SELECT id FROM bill_case" | grep -cE '^\s*[0-9]+\s*$')" = "1" ] || fail "reset_demo removed an external case"
 

@@ -24,12 +24,13 @@ export async function handleSandboxDiscover(request: Request, env: Env): Promise
       if (!response.ok) throw new Error(`Demo scan failed (${response.status})`);
     } else {
       await callReducer(env, "ingest_external_case", [
-        ownerIdentity, evidence.transaction.id, evidence.transaction.merchant, Math.round(evidence.transaction.amount * 100), evidence.transaction.date,
+        { __identity__: `0x${ownerIdentity}` }, evidence.transaction.id, evidence.transaction.merchant, Math.round(evidence.transaction.amount * 100), evidence.transaction.date,
         evidence.transactionSource, evidence.recordsSource,
         evidence.records.map((record) => ({ kind: record.type, description: record.description, date: record.date, provider: record.provider }))
       ]);
     }
-  } catch {
+  } catch (error) {
+    console.error("Sandbox case save failed:", error instanceof Error ? error.message : "unknown error");
     return Response.json({ error: "Could not save the discovered case" }, { status: 502 });
   }
   return Response.json({ transactionSource: evidence.transactionSource, recordsSource: evidence.recordsSource, fallbackReason: evidence.fallbackReason ?? null });

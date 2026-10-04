@@ -1,10 +1,11 @@
 import { Check, CircleHelp, ShieldCheck } from "lucide-react";
 import type { Finding, MedicalBillCase } from "../types/domain";
+import { DEMO_TRANSACTION } from "../../spacetimedb/src/logic/fixtures";
 
 const money = (value: number) => `$${value.toLocaleString()}`;
 
 export function EvidenceWorkspace({ caseData, finding }: { caseData: MedicalBillCase; finding?: Finding }) {
-  if (!caseData.bill || !finding) return <div className="evidence-empty"><ShieldCheck size={30}/><h2>The evidence trail starts here.</h2><p>Run the investigation to retrieve the statement and match each charge to the available record.</p></div>;
+  if (!caseData.bill || !finding) return <div className="evidence-empty"><ShieldCheck size={30}/><h2>The evidence trail starts here.</h2><p>{caseData.transaction.id === DEMO_TRANSACTION.id ? "Run the investigation to retrieve the statement and match each charge to the available record." : "This sandbox payment needs an itemized statement. No clinical match is claimed without consented records."}</p></div>;
   const uncertain = finding.action === "REQUEST_REVIEW";
   const resolved = uncertain && Boolean(caseData.resolution);
   return <div className="evidence-workspace">

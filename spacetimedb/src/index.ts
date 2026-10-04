@@ -124,6 +124,7 @@ export const request_itemized_bill_email = spacetimedb.reducer({ caseId: t.u64()
 /** Retrieves records, requests the bill, and schedules the mock statement's arrival. */
 export const investigate_case = spacetimedb.reducer({ caseId: t.u64() }, (ctx, { caseId }) => {
   const row = ownedCase(ctx, caseId);
+  if (row.transactionId !== DEMO_TRANSACTION.id) throw new SenderError("Synthetic investigation is only available for the demo case");
   if (row.status !== "DETECTED") return;
   for (const record of DEMO_RECORDS) ctx.db.medicalRecord.insert({ id: 0n, caseId: row.id, owner: row.owner, ...record });
   logStep(ctx, row, { action: "FETCH_RECORDS", tool: "getMedicalRecords", input: row.paidOn, output: `${DEMO_RECORDS.length} records`, title: "Medical records retrieved", detail: `${DEMO_RECORDS.length} relevant records found near the payment date`, source: "Medical record" });
@@ -164,6 +165,7 @@ export const deliver_bill = spacetimedb.reducer({ onSchedule: billDelivery }, { 
 /** The only path to provider contact: the case owner explicitly authorizes billing review. */
 export const authorize_review = spacetimedb.reducer({ caseId: t.u64() }, (ctx, { caseId }) => {
   const row = ownedCase(ctx, caseId);
+  if (row.transactionId !== DEMO_TRANSACTION.id) throw new SenderError("Synthetic provider correction is only available for the demo case");
   if (row.status !== "REVIEW_REQUIRED" || !row.invoiceId) throw new SenderError("Case is not ready for billing review");
   for (const event of [...ctx.db.timelineEvent.caseId.filter(row.id)]) if (event.status === "attention") ctx.db.timelineEvent.id.update({ ...event, status: "complete", title: "You authorized billing review", detail: "Hospital billing may now verify the questioned charge" });
   const questioned = [...ctx.db.finding.caseId.filter(row.id)].filter((item) => item.action === "REQUEST_REVIEW");
