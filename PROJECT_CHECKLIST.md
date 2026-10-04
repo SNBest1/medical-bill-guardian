@@ -20,9 +20,9 @@ Status 2026-10-03. All checked items are implemented; a deployed service is not 
 
 ## Still needed for live email
 
-- [ ] Verify that the Resend key can send from `billing@nipunsaini.com` to the authorized test inbox. Direct requests from this machine returned Cloudflare 1010 (bot signature); the Worker now sends a `User-Agent` and reports Resend's error text. Waiting on a Worker deploy, which needs the owner's go-ahead.
-- [ ] Send and receive one synthetic PDF test through the deployed Worker; confirm the outbound communication becomes `SENT` and the reply is parsed into bill items. The cloud DB had no email rows on 2026-10-04, so enabling sending would send only the test row.
-- [ ] Enable `EMAIL_SEND_ENABLED=true` and `VITE_EMAIL_ENABLED=true` only after the above test. Both are currently false.
+- [x] Resend delivery verified 2026-10-04: sends come from `billing@ai.nipunsaini.com` (the domain verified in Resend; `nipunsaini.com` itself is not registered there). The 1010 error was a missing User-Agent.
+- [x] Live round trip verified 2026-10-04 on case 6: the itemized-bill request was SENT and delivered; a Gmail reply with `docs/sample-reply-bill.pdf` passed the DMARC check and was parsed into six bill items, moving the case to REVIEW_REQUIRED.
+- [x] `EMAIL_SEND_ENABLED=true` (wrangler.jsonc) and `VITE_EMAIL_ENABLED=true` (deploy build) enabled after the test. Visitor-triggered mail is bounded by `EMAIL_DAILY_LIMIT` (20/24 h) and only ever goes to the test inbox.
 - [x] Configure the existing synthetic Nessie sandbox credentials as Worker secrets.
 - [ ] Obtain a consented FinchNode subject for the same patient. A third sandbox Connect simulation (`cs_b8b6cff2ecdb15393067`, 2026-10-04) also stayed in `syncing` with no subject, like the earlier two; this is a FinchNode sandbox limitation. Scripts: `scripts/finchnode-start-session.mjs`, `scripts/finchnode-resolve-session.mjs`.
 - [x] Parse more provider PDF layouts and links: text is rebuilt from positioned fragments, and a reply may link one PDF on a `BILL_PDF_ALLOWED_HOSTS` host (https, no redirects, size cap).

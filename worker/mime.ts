@@ -25,15 +25,16 @@ export function caseIdFromSubject(subject: string): string | null {
 
 /** Validated statement text from PDF bytes, or undefined (image-only, malformed, or off-contract). */
 async function statementFromPdf(bytes: Uint8Array): Promise<string | undefined> {
-  if (bytes.byteLength > MAX_PDF_BYTES || new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-") return undefined;
+  if (bytes.byteLength > MAX_PDF_BYTES || new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-") { console.warn(`PDF not used: ${bytes.byteLength} bytes, header ${JSON.stringify(new TextDecoder().decode(bytes.slice(0, 5)))}`); return undefined; }
   try {
     const statement = (await pdfLines(bytes, MAX_PDF_PAGES)).trim();
     if (!statement || statement.length > MAX_TEXT_CHARS) return undefined;
     const bill = parseItemizedBill(statement);
     if (bill.items.reduce((sum, item) => sum + item.amountCents, 0) !== bill.totalCents) return undefined;
     return statement;
-  } catch {
+  } catch (error) {
     // Image-only (scanned) or malformed PDFs stay pending for manual review; there is no OCR.
+    console.warn(`PDF not used: ${error instanceof Error ? error.message.slice(0, 200) : String(error)}`);
     return undefined;
   }
 }
@@ -48,6 +49,7 @@ export async function parseProviderReply(message: InboundMessage, links: LinkOpt
   if (raw.byteLength > MAX_EMAIL_BYTES) return null;
   const email = await PostalMime.parse(raw);
   const body = (email.text ?? "").slice(0, MAX_TEXT_CHARS).trim();
+  console.log(`reply attachments: ${email.attachments.map((attachment) => `${attachment.mimeType}${attachment.filename ? ` (${attachment.filename.slice(-40)})` : ""}`).join(", ") || "none"}`);
   const pdfs = email.attachments.filter((attachment) =>
     attachment.mimeType === "application/pdf" || attachment.filename?.toLowerCase().endsWith(".pdf"),
   );
