@@ -6,7 +6,9 @@ import { handleSandboxDiscover } from "./sandbox";
 
 /** Handles static assets and the authenticated sandbox discovery route. */
 async function handleFetch(request: Request, env: Env): Promise<Response> {
-  if (new URL(request.url).pathname === "/api/sandbox/discover" && request.method === "POST") return handleSandboxDiscover(request, env);
+  const path = new URL(request.url).pathname;
+  if (path === "/api/sandbox/discover" && request.method === "POST") return handleSandboxDiscover(request, env);
+  if (path.startsWith("/api/")) return new Response("Not found", { status: 404 });
   return env.ASSETS.fetch(request);
 }
 
