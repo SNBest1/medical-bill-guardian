@@ -15,6 +15,7 @@ export class CaseStore {
     this.db.exec("CREATE TABLE IF NOT EXISTS cases (id TEXT PRIMARY KEY, transaction_id TEXT NOT NULL UNIQUE, data TEXT NOT NULL, updated_at TEXT NOT NULL)");
     this.db.exec("CREATE TABLE IF NOT EXISTS statement_inbox (message_id TEXT PRIMARY KEY, case_id TEXT NOT NULL, data TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', received_at TEXT NOT NULL, error TEXT)");
     this.db.exec("CREATE TABLE IF NOT EXISTS photon_outbox (operation_key TEXT PRIMARY KEY, status TEXT NOT NULL, message_id TEXT, updated_at TEXT NOT NULL)");
+    this.db.exec("CREATE TABLE IF NOT EXISTS command_inbox (message_id TEXT PRIMARY KEY, status TEXT NOT NULL, received_at TEXT NOT NULL)");
     this.db.exec("CREATE TABLE IF NOT EXISTS case_authorizations (case_id TEXT PRIMARY KEY, scope TEXT NOT NULL, granted_at TEXT NOT NULL, expires_at TEXT NOT NULL)");
   }
 
@@ -93,6 +94,20 @@ export class CaseStore {
 
   pendingStatements(): PhotonStatement[] {
     return (this.db.prepare("SELECT data FROM statement_inbox WHERE status = 'PENDING' ORDER BY received_at LIMIT 25").all() as { data: string }[]).map((row) => JSON.parse(row.data));
+  }
+
+  /** Claims a patient command text by Spectrum message ID; false means it was already handled (redelivery). */
+  claimCommand(messageId: string): boolean {
+    return this.db.prepare("INSERT OR IGNORE INTO command_inbox (message_id, status, received_at) VALUES (?, 'PROCESSING', ?)").run(messageId, new Date().toISOString()).changes === 1;
+  }
+
+  finishCommand(messageId: string, status: string): void {
+    this.db.prepare("UPDATE command_inbox SET status = ? WHERE message_id = ?").run(status, messageId);
+  }
+
+  /** Frees a claim whose work failed before any provider contact, so a redelivery can retry it. */
+  releaseCommand(messageId: string): void {
+    this.db.prepare("DELETE FROM command_inbox WHERE message_id = ? AND status = 'PROCESSING'").run(messageId);
   }
 
   beginText(key: string): boolean {
