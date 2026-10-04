@@ -7,14 +7,16 @@ import { handlePatientDecision } from "./patient-decision";
 import { ScenarioOpenError } from "./open-scenario";
 import { runAgentCommand, type CommandProviders } from "./run-command";
 
+import { patientChat, type ChatOptions } from "./patient-chat";
+import { classifyPatientReply } from "./patient-intent";
 import { currentMilestone } from "./progress-updates";
 import { safePhotonError } from "../communications/photon-text";
 
 export type ReplyState = "disabled" | "sent" | "uncertain" | "failed";
-export type PatientCommandResult = { kind: "duplicate" } | { kind: "started" | "ambiguous" | "unknown" | "approved" | "declined" | "status" | "nothing-pending" | "failed"; reply: ReplyState };
+export type PatientCommandResult = { kind: "duplicate" } | { kind: "started" | "ambiguous" | "unknown" | "approved" | "declined" | "status" | "nothing-pending" | "failed" | "chat"; reply: ReplyState };
 export type TextSender = (phone: string, text: string) => Promise<string>;
 
-/** Fixed templates only: arbitrary patient text is never echoed back. */
+/** Deterministic replies for the controlled action path. General chat is separate. */
 function replyText(outcome: Awaited<ReturnType<typeof runAgentCommand>>): string {
   // The direct reply must explain the approval gate even if a separate progress update fails or the worker is stopped.
   if (outcome.kind === "started" && outcome.case.status === "REQUESTING_BILL") return currentMilestone(outcome.case)!.text;
@@ -30,7 +32,10 @@ function replyText(outcome: Awaited<ReturnType<typeof runAgentCommand>>): string
  * authorization to collect records and the itemized bill only. The optional reply goes to the
  * approved patient phone only, once, through the same outbox idempotency as other Photon texts.
  */
-export async function handlePatientCommand(store: CaseStore, command: PatientCommand, providers: CommandProviders, options: { replyEnabled: boolean; patientPhone: string; send?: TextSender }): Promise<PatientCommandResult> {
+export async function handlePatientCommand(store: CaseStore, command: PatientCommand, providers: CommandProviders, options: { replyEnabled: boolean; patientPhone: string; send?: TextSender; conversational?: boolean; chat?: ChatOptions }): Promise<PatientCommandResult> {
+  const conversational = options.conversational ?? process.env.PHOTON_CONVERSATIONAL === "true";
+  let chatScenario: string | undefined;
+  let confirmationGate: string | undefined;
   const replyKey = `command:${command.messageId}:reply`;
   if (!store.claimCommand(command.messageId)) {
     const text = store.patientReply(replyKey);
@@ -38,11 +43,32 @@ export async function handlePatientCommand(store: CaseStore, command: PatientCom
     return { kind: "duplicate" };
   }
   const respond = async (kind: Exclude<PatientCommandResult["kind"], "duplicate">, text: string): Promise<PatientCommandResult> => {
+    if (conversational) {
+      const active = store.activeCase();
+      store.rememberPatientChat(command.messageId, { role: "user", text: command.text, scenarioId: chatScenario ?? active?.scenarioId });
+      store.rememberPatientChat(command.messageId, { role: "assistant", text, scenarioId: chatScenario ?? active?.scenarioId, approvalGate: confirmationGate ?? (kind !== "chat" && text === (active ? currentMilestone(active)?.text : undefined) ? active?.status : undefined) });
+    }
     store.finishCommand(command.messageId, kind.toUpperCase());
     store.queuePatientReply(replyKey, text);
     return { kind, reply: options.replyEnabled ? await sendReply(store, replyKey, options, text) : "disabled" };
   };
   if (command.unsupported) return respond("unknown", command.unsupported === "too-long" ? "That message is too long for me to process. Please send a shorter request, such as investigate Harriet, STATUS, or I’M DONE." : "I couldn’t read that message. Please send a text request, such as investigate Harriet, STATUS, or I’M DONE.");
+  if (conversational) {
+    const intent = classifyPatientReply(command.text);
+    const last = store.recentPatientChat().findLast(t => t.role === "assistant");
+    if ((intent?.kind === "approve" || intent?.kind === "refund") && last && last.approvalGate !== store.activeCase()?.status) {
+      confirmationGate = store.activeCase()?.status;
+      return respond("status", `Before I act, please confirm the proposed step. ${store.activeCase() ? currentMilestone(store.activeCase()!)?.text ?? "Nothing is awaiting approval." : "No bill is selected."}`);
+    }
+    // Names mentioned in ordinary conversation must never start an investigation.
+    const explicitStart = /\b(?:investigate|look into)\b.*\b(?:bill|morgan|harriet|theo)\b/i.test(command.text) || /\b(?:check|review)\b.*\bbill\b/i.test(command.text) || /^(?:morgan|harriet|theo)(?:[.!])?$/i.test(command.text.trim());
+    const bankInquiry = /balance|nessie|transactions?|bank history|money left/i.test(command.text);
+    if (!intent && (bankInquiry || !explicitStart || /Whose account should I check/.test(last?.text ?? ""))) {
+      const answer = await patientChat(store, command.text, options.chat);
+      chatScenario = answer.scenarioId;
+      return respond("chat", answer.text);
+    }
+  }
   let decision;
   try { decision = await handlePatientDecision(store, command.text, providers.communications); }
   catch { return respond("failed", "I couldn’t process that reply. No new action is confirmed. Try STATUS or open the case page."); }

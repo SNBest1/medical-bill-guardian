@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import type { MedicalBillCase } from "../types/domain";
+import type { ChatTurn } from "../services/agent/patient-chat";
 import type { PhotonStatement } from "../services/communications/photon-inbox";
 
 export class CaseStore {
@@ -11,6 +12,7 @@ export class CaseStore {
   constructor(path: string) {
     if (path !== ":memory:") mkdirSync(dirname(resolve(path)), { recursive: true });
     this.db = new DatabaseSync(path);
+    this.db.exec("CREATE TABLE IF NOT EXISTS patient_chat (message_id TEXT NOT NULL, role TEXT NOT NULL, text TEXT NOT NULL, scenario_id TEXT, approval_gate TEXT, seq INTEGER PRIMARY KEY AUTOINCREMENT, UNIQUE(message_id, role))");
     this.db.exec("CREATE TABLE IF NOT EXISTS case_operations (case_id TEXT PRIMARY KEY, token TEXT NOT NULL, started_at TEXT NOT NULL)");
     this.db.exec("CREATE TABLE IF NOT EXISTS cases (id TEXT PRIMARY KEY, transaction_id TEXT NOT NULL UNIQUE, data TEXT NOT NULL, updated_at TEXT NOT NULL)");
     this.db.exec("CREATE TABLE IF NOT EXISTS statement_inbox (message_id TEXT PRIMARY KEY, case_id TEXT NOT NULL, data TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', received_at TEXT NOT NULL, error TEXT)");
@@ -24,6 +26,15 @@ export class CaseStore {
     const recent = this.list().find((c) => c.scenarioId && c.status !== "DETECTED");
     if (recent) this.db.prepare("INSERT OR IGNORE INTO active_patient VALUES (1, ?, ?)").run(recent.scenarioId!, recent.id);
     this.db.exec("CREATE TABLE IF NOT EXISTS case_authorizations (case_id TEXT PRIMARY KEY, scope TEXT NOT NULL, granted_at TEXT NOT NULL, expires_at TEXT NOT NULL)");
+  }
+
+  recentPatientChat(): ChatTurn[] {
+    const rows = this.db.prepare("SELECT role, text, scenario_id, approval_gate FROM patient_chat ORDER BY seq DESC LIMIT 20").all() as { role: ChatTurn["role"]; text: string; scenario_id?: string; approval_gate?: string }[];
+    return rows.reverse().map(r => ({ role: r.role, text: r.text, scenarioId: r.scenario_id ?? undefined, approvalGate: r.approval_gate ?? undefined }));
+  }
+  rememberPatientChat(messageId: string, turn: ChatTurn): void {
+    this.db.prepare("INSERT OR IGNORE INTO patient_chat (message_id, role, text, scenario_id, approval_gate) VALUES (?, ?, ?, ?, ?)").run(messageId, turn.role, turn.text, turn.scenarioId ?? null, turn.approvalGate ?? null);
+    this.db.exec("DELETE FROM patient_chat WHERE seq NOT IN (SELECT seq FROM patient_chat ORDER BY seq DESC LIMIT 20)");
   }
 
   activeCase(): MedicalBillCase | null {
