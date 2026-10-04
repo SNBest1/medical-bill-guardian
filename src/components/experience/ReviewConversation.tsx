@@ -30,8 +30,8 @@ export function ReviewConversation({ caseData, busy, onCancel, onSave }: { caseD
 
   const current = turns[Math.min(index, turns.length - 1)];
   const finished = index >= turns.length;
-  return <section className="gx-conversation" aria-label="Simulated billing conversation">
-    <div className="gx-call-bar"><span><Volume2 size={16}/> Simulated call · fictional billing desk</span><button onClick={() => { stop(); onCancel(); }} aria-label="Close call"><X size={18}/></button></div>
+  return <section className="gx-conversation" aria-label="Billing conversation">
+    <div className="gx-call-bar"><span><Volume2 size={16}/> Billing call · scripted demo</span><button onClick={() => { stop(); onCancel(); }} aria-label="Close call"><X size={18}/></button></div>
     <div className="gx-speakers"><span className={current?.speaker === "Guardian" && !finished ? "active" : ""}>Guardian</span><i/><span className={current?.speaker === "Billing representative" && !finished ? "active" : ""}>Hospital billing</span></div>
     <div className="gx-current-line">
       <small>{finished ? "Conversation complete" : `${current.speaker} · ${index + 1} of ${turns.length}`}</small>
