@@ -23,8 +23,8 @@ async function handleEmail(message: InboundMessage, env: Env): Promise<void> {
   const parsed = await parseProviderReply(message, { allowedHosts: allowedPdfHosts(env.BILL_PDF_ALLOWED_HOSTS) });
   if (!parsed) return;
   const kind = await inboundKind(env, parsed.caseId);
-  if (kind === "bill" && parsed.statement) await callReducer(env, "ingest_provider_bill_email", [parsed.caseId, parsed.messageId, parsed.statement]);
-  if (kind === "review" && parsed.body) await callReducer(env, "ingest_provider_review_email", [parsed.caseId, parsed.messageId, parsed.body]);
+  if (kind === "bill" && parsed.statement) await callReducer(env, "ingest_provider_bill_email", [Number(parsed.caseId), parsed.messageId, parsed.statement]);
+  if (kind === "review" && parsed.body) await callReducer(env, "ingest_provider_review_email", [Number(parsed.caseId), parsed.messageId, parsed.body]);
 }
 
 export default {

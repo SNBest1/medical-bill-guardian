@@ -14,7 +14,7 @@
     "SPACETIME_HTTP_URL": "https://maincloud.spacetimedb.com",
     "SPACETIME_DB_NAME": "medical-bill-guardian-email",
     "EMAIL_SEND_ENABLED": "false",
-    "RESEND_FROM_EMAIL": "billing@nipunsaini.com",
+    "RESEND_FROM_EMAIL": "billing@ai.nipunsaini.com",
     "PROVIDER_REPLY_EMAIL": "nipun.saini9@gmail.com",
     "EMAIL_DAILY_LIMIT": "20",
     "BILL_PDF_ALLOWED_HOSTS": ""

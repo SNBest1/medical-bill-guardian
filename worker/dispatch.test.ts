@@ -31,7 +31,7 @@ describe("dispatchPending", () => {
     expect(await dispatchPending(env, run.deps)).toEqual({ sent: 1, failed: 1, capped: 0 });
     expect(run.reducers).toEqual([
       ["record_outbound_failure", [1, "Resend send failed (500) for 1"]],
-      ["record_outbound_email", ["2", "EMAIL_ITEMIZED_BILL_REQUEST", "resend-2"]],
+      ["record_outbound_email", [2, "EMAIL_ITEMIZED_BILL_REQUEST", "resend-2"]],
     ]);
   });
 
@@ -39,5 +39,13 @@ describe("dispatchPending", () => {
     const run = deps([pending("1"), pending("2"), pending("3")], 9);
     expect(await dispatchPending({ ...env, EMAIL_DAILY_LIMIT: "10" }, run.deps)).toEqual({ sent: 1, failed: 0, capped: 2 });
     expect(run.reducers.map(([name]) => name)).toEqual(["record_outbound_email"]);
+  });
+
+  it("does not abort the run when a sent email cannot be recorded", async () => {
+    const run = deps([pending("1"), pending("2")]);
+    let calls = 0;
+    const callReducer = async (_env: Env, name: string, args: unknown[]) => { calls++; if (calls === 1) throw new Error("SpacetimeDB record_outbound_email failed (400)"); run.reducers.push([name, args]); };
+    expect(await dispatchPending(env, { ...run.deps, callReducer })).toEqual({ sent: 2, failed: 0, capped: 0 });
+    expect(run.reducers).toEqual([["record_outbound_email", [2, "EMAIL_ITEMIZED_BILL_REQUEST", "resend-2"]]]);
   });
 });

@@ -34,8 +34,10 @@ export async function dispatchPending(env: Env, deps: DispatchDeps = defaults): 
       await deps.callReducer(env, "record_outbound_failure", [Number(item.communicationId), message]).catch((cause) => console.error(`could not record failure: ${cause}`));
       continue;
     }
-    // If recording fails, the next run resends with the same Idempotency-Key and Resend returns this message.
-    await deps.callReducer(env, "record_outbound_email", [item.caseId, item.kind, messageId]);
+    // u64 reducer arguments must be JSON numbers; a numeric string is rejected with 400.
+    // If recording fails, the next run resends with the same Idempotency-Key and Resend replays this message.
+    try { await deps.callReducer(env, "record_outbound_email", [Number(item.caseId), item.kind, messageId]); }
+    catch (error) { console.error(`sent ${messageId} but could not record it: ${error instanceof Error ? error.message : String(error)}`); }
     result.sent++;
     sentToday++;
   }
