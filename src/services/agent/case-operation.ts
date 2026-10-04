@@ -1,5 +1,6 @@
 import type { CaseStore } from "../../lib/db";
 import type { MedicalBillCase } from "../../types/domain";
+import { sendProgressUpdate } from "./progress-updates";
 
 export class CaseBusyError extends Error {}
 
@@ -17,6 +18,7 @@ export async function mutateCase(store: CaseStore, id: string, action: (current:
     if (next.id !== id || next.transaction.id !== current.transaction.id) throw new Error("Case identity changed");
     store.save(next);
     store.releaseOperation(id, token);
+    await sendProgressUpdate(store, next);
     return next;
   } catch (error) {
     const retain = typeof retainOnFailure === "function" ? retainOnFailure(error) : retainOnFailure;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStore } from "@/lib/db";
+import { sendProgressUpdate } from "@/services/agent/progress-updates";
 import { communicationProvider } from "@/lib/providers";
 import { reviewCase, notifyCase } from "@/services/agent/orchestrator";
 
@@ -27,10 +28,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       reviewed = await reviewCase(current, provider, true);
       store.save(reviewed);
       contacting = false;
+      await sendProgressUpdate(store, reviewed);
     }
     const next = reviewed.status === "RESOLVED" ? await notifyCase(reviewed, provider) : reviewed;
     store.save(next);
     store.releaseOperation(id, token);
+    await sendProgressUpdate(store, next);
     return NextResponse.json(next);
   } catch (error) {
     // An uncertain provider result must not cause a second contact on automatic retry.
