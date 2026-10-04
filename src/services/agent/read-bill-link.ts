@@ -53,7 +53,7 @@ async function withCase(store: CaseStore, id: string, change: (current: MedicalB
   throw new CaseBusyError("The case stayed busy while recording the bill reading");
 }
 
-const stepFor = (kind: ReadingStep["kind"], text: string, status?: ReadingStep["status"], detail?: string): ReadingStep => ({ id: crypto.randomUUID(), at: new Date().toISOString(), kind, text, status, detail });
+const stepFor = (kind: ReadingStep["kind"], text: string, status?: ReadingStep["status"], detail?: string, item?: ReadingStep["item"]): ReadingStep => ({ id: crypto.randomUUID(), at: new Date().toISOString(), kind, text, status, detail, item });
 
 /**
  * Collects reading steps and writes each one to the case the moment it happens. When several cases
@@ -66,8 +66,8 @@ class ReadingSink {
   constructor(private readonly store: CaseStore, private target?: string) {}
   get caseId() { return this.target; }
 
-  async emit(kind: ReadingStep["kind"], text: string, status: ReadingStep["status"] = "ok", detail?: string) {
-    const step = stepFor(kind, text, status, detail);
+  async emit(kind: ReadingStep["kind"], text: string, status: ReadingStep["status"] = "ok", detail?: string, item?: ReadingStep["item"]) {
+    const step = stepFor(kind, text, status, detail, item);
     if (!this.target) { this.pending.push(step); return; }
     await this.write([step]);
   }
@@ -166,9 +166,9 @@ export async function processBillLink(store: CaseStore, link: HospitalBillLink, 
       const finding = findings.find((entry) => entry.billItemId === item.id)!;
       const evidence = records.filter((record) => finding.evidenceRecordIds?.includes(record.id));
       const label = `${item.description} ${money(item.amount)}`;
-      if (finding.clinicalStatus === "SUPPORTED" && evidence.length) await sink.emit("charge", `${label} - matches '${evidence[0].description}'`, "ok", evidence.map((record) => `${record.type} · ${record.date}`).join(", "));
-      else if (finding.clinicalStatus === "NO_MATCH_FOUND" || finding.clinicalStatus === "INSUFFICIENT_DATA") await sink.emit("charge", `${label} - no matching record, will ask billing`, "review", finding.explanation);
-      else await sink.emit("charge", `${label} - needs review, will ask billing`, "review", finding.explanation);
+      if (finding.clinicalStatus === "SUPPORTED" && evidence.length) await sink.emit("charge", `${label} - matches '${evidence[0].description}'`, "ok", evidence.map((record) => `${record.type} · ${record.date}`).join(", "), { description: item.description, amount: item.amount });
+      else if (finding.clinicalStatus === "NO_MATCH_FOUND" || finding.clinicalStatus === "INSUFFICIENT_DATA") await sink.emit("charge", `${label} - no matching record, will ask billing`, "review", finding.explanation, { description: item.description, amount: item.amount });
+      else await sink.emit("charge", `${label} - needs review, will ask billing`, "review", finding.explanation, { description: item.description, amount: item.amount });
     }
     await sleep(deps.paceMs);
     await sink.emit("total", `Total ${money(bill.total)} = sum of charges`, "ok");

@@ -16,7 +16,7 @@ export interface Communication { id: string; type: "ITEMIZED_BILL_REQUEST" | "BI
 export interface Resolution { result: "DUPLICATE_REMOVED" | "CHARGE_VERIFIED" | "PROVIDER_REVIEW_PENDING" | "UNRESOLVED"; originalTotal: number; correctedTotal: number; adjustment: number; explanation: string }
 export interface Recovery { status: "REFUND_PENDING" | "REFUND_RECEIVED"; amount: number; confirmation: string; creditTransactionId?: string; simulated: boolean }
 /** One real operation the agent performed while reading a delivered bill; `status` colors the step in the live panel. */
-export interface ReadingStep { id: string; at: string; kind: "received" | "verified" | "download" | "extract" | "invoice" | "provider" | "patient" | "date" | "charge" | "total" | "done" | "error"; text: string; detail?: string; status?: "ok" | "review" | "fail" }
+export interface ReadingStep { id: string; at: string; kind: "received" | "verified" | "download" | "extract" | "invoice" | "provider" | "patient" | "date" | "charge" | "total" | "done" | "error"; text: string; detail?: string; status?: "ok" | "review" | "fail"; /** Present on per-charge steps so the page can draw the charge row. */ item?: { description: string; amount: number } }
 /** Live log of the agent reading a hospital-texted PDF bill; written incrementally so case polling shows it as it happens. */
 export interface BillReading { startedAt: string; steps: ReadingStep[]; done: boolean; failed?: boolean }
 /** Where the case's medical records came from; `live` is false for synthetic scenario data. */

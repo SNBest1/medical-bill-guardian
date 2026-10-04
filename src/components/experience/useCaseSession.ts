@@ -21,8 +21,17 @@ export function useCaseSession(id: string) {
 
   useEffect(() => { void load().catch((cause) => setError(cause instanceof Error ? cause.message : "Case not found")); }, [load]);
 
+  // While the agent is reading a texted PDF, only re-read the case (no analyze mutation) so each saved step shows up quickly.
+  const reading = caseData?.status === "WAITING_FOR_BILL" && Boolean(caseData.reading && !caseData.reading.done);
   useEffect(() => {
-    if (caseData?.status !== "WAITING_FOR_BILL" || pollStalled) return;
+    if (!reading) return;
+    let cancelled = false;
+    const timer = window.setInterval(() => { void fetch(`/api/cases/${id}`, { cache: "no-store" }).then((response) => response.ok ? response.json() : null).then((data) => { if (!cancelled && data) setCaseData(data); }).catch(() => undefined); }, 800);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [reading, id]);
+
+  useEffect(() => {
+    if (caseData?.status !== "WAITING_FOR_BILL" || pollStalled || reading) return;
     let cancelled = false;
     let failures = 0;
     const poll = async () => {
@@ -44,7 +53,7 @@ export function useCaseSession(id: string) {
     const timer = window.setInterval(() => void poll(), 900);
     void poll();
     return () => { cancelled = true; window.clearInterval(timer); };
-  }, [caseData?.status, id, pollStalled, pollAttempt]);
+  }, [caseData?.status, id, pollStalled, pollAttempt, reading]);
 
   const retryPoll = useCallback(() => { setError(""); setPollStalled(false); setPollAttempt((attempt) => attempt + 1); }, []);
 

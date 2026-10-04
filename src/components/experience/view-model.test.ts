@@ -31,4 +31,14 @@ describe("caseViewModel", () => {
     caseData.resolution = { result: "DUPLICATE_REMOVED", originalTotal: 4820, correctedTotal: 4120, adjustment: 700, explanation: "Specialist charge removed." };
     expect(caseViewModel(caseData)).toMatchObject({ beat: "outcome", correctedAmount: 4120, adjustment: 700 });
   });
+
+  it("shows the live reading beat only while a texted PDF is being read", () => {
+    const waiting = createCase(demoTransaction);
+    waiting.status = "WAITING_FOR_BILL";
+    expect(caseViewModel(waiting).beat).toBe("collecting");
+    waiting.reading = { startedAt: new Date().toISOString(), steps: [], done: false };
+    expect(caseViewModel(waiting)).toMatchObject({ beat: "reading", isReading: true });
+    waiting.reading = { ...waiting.reading, done: true, failed: true };
+    expect(caseViewModel(waiting)).toMatchObject({ beat: "collecting", isReading: false });
+  });
 });
