@@ -36,5 +36,3 @@ export function billingReview(provider: string, invoiceId: string, description: 
     resolution: { result: "DUPLICATE_REMOVED", originalTotalCents: 482000, correctedTotalCents: 412000, adjustmentCents: 70000, explanation: "The hospital confirmed that the $700 specialist consultation duplicated services already included in the emergency room charge and removed it." }
   };
 }
-
-export const notificationTranscript = "Demo in-app notification";

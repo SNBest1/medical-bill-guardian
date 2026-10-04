@@ -70,8 +70,17 @@ export const Communication = __t.object("Communication", {
   status: __t.string(),
   transcript: __t.string(),
   result: __t.option(__t.string()),
+  messageId: __t.option(__t.string()),
 });
 export type Communication = __Infer<typeof Communication>;
+
+export const ExternalMedicalRecord = __t.object("ExternalMedicalRecord", {
+  kind: __t.string(),
+  description: __t.string(),
+  date: __t.string(),
+  provider: __t.string(),
+});
+export type ExternalMedicalRecord = __Infer<typeof ExternalMedicalRecord>;
 
 export const Finding = __t.object("Finding", {
   id: __t.u64(),
@@ -100,6 +109,11 @@ export const MedicalRecord = __t.object("MedicalRecord", {
 });
 export type MedicalRecord = __Infer<typeof MedicalRecord>;
 
+export const ModuleOwner = __t.object("ModuleOwner", {
+  ownerIdentity: __t.identity(),
+});
+export type ModuleOwner = __Infer<typeof ModuleOwner>;
+
 export const MyAuditLog = __t.object("MyAuditLog", {});
 export type MyAuditLog = __Infer<typeof MyAuditLog>;
 
@@ -120,6 +134,13 @@ export type MyMedicalRecords = __Infer<typeof MyMedicalRecords>;
 
 export const MyTimeline = __t.object("MyTimeline", {});
 export type MyTimeline = __Infer<typeof MyTimeline>;
+
+export const ProcessedEmail = __t.object("ProcessedEmail", {
+  messageId: __t.string(),
+  caseId: __t.u64(),
+  kind: __t.string(),
+});
+export type ProcessedEmail = __Infer<typeof ProcessedEmail>;
 
 export const Resolution = __t.object("Resolution", {
   result: __t.string(),

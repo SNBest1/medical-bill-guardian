@@ -34,8 +34,14 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AuthorizeEmailReviewReducer from "./authorize_email_review_reducer";
 import AuthorizeReviewReducer from "./authorize_review_reducer";
+import IngestExternalCaseReducer from "./ingest_external_case_reducer";
+import IngestProviderBillEmailReducer from "./ingest_provider_bill_email_reducer";
+import IngestProviderReviewEmailReducer from "./ingest_provider_review_email_reducer";
 import InvestigateCaseReducer from "./investigate_case_reducer";
+import RecordOutboundEmailReducer from "./record_outbound_email_reducer";
+import RequestItemizedBillEmailReducer from "./request_itemized_bill_email_reducer";
 import ResetDemoReducer from "./reset_demo_reducer";
 import ScanDemoPaymentReducer from "./scan_demo_payment_reducer";
 
@@ -107,8 +113,14 @@ const tablesSchema = __schema({
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
+  __reducerSchema("authorize_email_review", AuthorizeEmailReviewReducer),
   __reducerSchema("authorize_review", AuthorizeReviewReducer),
+  __reducerSchema("ingest_external_case", IngestExternalCaseReducer),
+  __reducerSchema("ingest_provider_bill_email", IngestProviderBillEmailReducer),
+  __reducerSchema("ingest_provider_review_email", IngestProviderReviewEmailReducer),
   __reducerSchema("investigate_case", InvestigateCaseReducer),
+  __reducerSchema("record_outbound_email", RecordOutboundEmailReducer),
+  __reducerSchema("request_itemized_bill_email", RequestItemizedBillEmailReducer),
   __reducerSchema("reset_demo", ResetDemoReducer),
   __reducerSchema("scan_demo_payment", ScanDemoPaymentReducer),
 );

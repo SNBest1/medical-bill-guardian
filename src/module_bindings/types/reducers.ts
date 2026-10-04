@@ -6,13 +6,25 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AuthorizeEmailReviewReducer from "../authorize_email_review_reducer";
 import AuthorizeReviewReducer from "../authorize_review_reducer";
+import IngestExternalCaseReducer from "../ingest_external_case_reducer";
+import IngestProviderBillEmailReducer from "../ingest_provider_bill_email_reducer";
+import IngestProviderReviewEmailReducer from "../ingest_provider_review_email_reducer";
 import InvestigateCaseReducer from "../investigate_case_reducer";
+import RecordOutboundEmailReducer from "../record_outbound_email_reducer";
+import RequestItemizedBillEmailReducer from "../request_itemized_bill_email_reducer";
 import ResetDemoReducer from "../reset_demo_reducer";
 import ScanDemoPaymentReducer from "../scan_demo_payment_reducer";
 
+export type AuthorizeEmailReviewParams = __Infer<typeof AuthorizeEmailReviewReducer>;
 export type AuthorizeReviewParams = __Infer<typeof AuthorizeReviewReducer>;
+export type IngestExternalCaseParams = __Infer<typeof IngestExternalCaseReducer>;
+export type IngestProviderBillEmailParams = __Infer<typeof IngestProviderBillEmailReducer>;
+export type IngestProviderReviewEmailParams = __Infer<typeof IngestProviderReviewEmailReducer>;
 export type InvestigateCaseParams = __Infer<typeof InvestigateCaseReducer>;
+export type RecordOutboundEmailParams = __Infer<typeof RecordOutboundEmailReducer>;
+export type RequestItemizedBillEmailParams = __Infer<typeof RequestItemizedBillEmailReducer>;
 export type ResetDemoParams = __Infer<typeof ResetDemoReducer>;
 export type ScanDemoPaymentParams = __Infer<typeof ScanDemoPaymentReducer>;
 

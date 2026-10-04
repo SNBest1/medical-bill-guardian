@@ -15,8 +15,10 @@ export const billItem = table({ name: "bill_item" }, { ...child, description: t.
 export const finding = table({ name: "finding" }, { ...child, billItemId: t.option(t.u64()), description: t.string(), amountCents: t.i64(), clinicalStatus: t.string(), pricingStatus: t.string(), confidence: t.f64(), evidence: t.array(t.string()), explanation: t.string(), action: t.string() });
 export const timelineEvent = table({ name: "timeline_event" }, { ...child, at: t.timestamp(), title: t.string(), detail: t.string(), source: t.string(), status: t.string() });
 export const auditEntry = table({ name: "audit_entry" }, { ...child, at: t.timestamp(), action: t.string(), tool: t.string(), inputSummary: t.string(), outputSummary: t.string(), status: t.string() });
-export const communication = table({ name: "communication" }, { ...child, kind: t.string(), at: t.timestamp(), status: t.string(), transcript: t.string(), result: t.option(t.string()) });
+export const communication = table({ name: "communication" }, { ...child, kind: t.string(), at: t.timestamp(), status: t.string(), transcript: t.string(), result: t.option(t.string()), messageId: t.option(t.string()) });
 export const billDelivery = table({ name: "bill_delivery" }, { scheduledId: t.u64().primaryKey().autoInc(), scheduledAt: t.scheduleAt(), caseId: t.u64().index("btree") });
+export const moduleOwner = table({ name: "module_owner" }, { ownerIdentity: t.identity().primaryKey() });
+export const processedEmail = table({ name: "processed_email" }, { messageId: t.string().primaryKey(), caseId: t.u64().index("btree"), kind: t.string() });
 
-const spacetimedb = schema({ billCase, medicalRecord, billItem, finding, timelineEvent, auditEntry, communication, billDelivery });
+const spacetimedb = schema({ billCase, medicalRecord, billItem, finding, timelineEvent, auditEntry, communication, billDelivery, moduleOwner, processedEmail });
 export default spacetimedb;

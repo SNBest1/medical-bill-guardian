@@ -58,4 +58,45 @@ call investigate_case 2
 call reset_demo
 [ "$(sql "SELECT case_id FROM bill_delivery" | grep -cE '^\s*[0-9]+\s*$')" = "0" ] || fail "reset left a pending bill delivery"
 
+# Email authorization creates an outbox item but never schedules mock delivery.
+call scan_demo_payment
+call request_itemized_bill_email 3
+sql "SELECT status FROM bill_case" | grep -q WAITING_FOR_BILL || fail "email bill request did not wait"
+[ "$(sql "SELECT case_id FROM bill_delivery" | grep -cE '^\s*[0-9]+\s*$')" = "0" ] || fail "email request scheduled a mock bill"
+spacetime call -y -s "$SERVER" --anonymous "$DB" record_outbound_email 3 EMAIL_ITEMIZED_BILL_REQUEST outbound-3 2>/dev/null && fail "stranger recorded an outbound email"
+call record_outbound_email 3 EMAIL_ITEMIZED_BILL_REQUEST outbound-3
+statement='Invoice: UH-48291
+Provider: University Hospital
+Service date: 2026-09-28
+Charges
+Emergency room | 99285 | 1100.00
+CT scan | - | 1800.00
+X-ray | - | 450.00
+Suture repair | - | 600.00
+Medication | - | 170.00
+Specialist consultation | - | 700.00
+Total: 4820.00'
+statement_json=$(STATEMENT="$statement" node -e 'process.stdout.write(JSON.stringify(process.env.STATEMENT))')
+spacetime call -y -s "$SERVER" --anonymous "$DB" ingest_provider_bill_email 3 inbound-bill-3 "$statement_json" 2>/dev/null && fail "stranger ingested a provider bill"
+call ingest_provider_bill_email 3 inbound-bill-3 "$statement_json"
+sql "SELECT status FROM bill_case" | grep -q REVIEW_REQUIRED || fail "provider bill was not reconciled"
+call ingest_provider_bill_email 3 inbound-bill-3 "$statement_json"
+[ "$(sql "SELECT id FROM bill_item" | grep -cE '^\s*[0-9]+\s*$')" = "6" ] || fail "duplicate email added bill items"
+call authorize_email_review 3
+sql "SELECT status FROM bill_case" | grep -q WAITING_FOR_PROVIDER || fail "email review did not wait for provider"
+call record_outbound_email 3 EMAIL_BILLING_REVIEW outbound-review-3
+call ingest_provider_review_email 3 inbound-review-3 'We are reviewing this charge.'
+sql "SELECT status FROM bill_case" | grep -q WAITING_FOR_PROVIDER || fail "unverified email resolved the case"
+resolution_row=$(sql "SELECT resolution FROM bill_case")
+grep -Eq 'None|none|null|NULL' <<<"$resolution_row" || fail "unverified email created savings: $resolution_row"
+
+owner_identity=$(sql "SELECT owner FROM bill_case" | grep -oE '[a-f0-9]{64}' | head -1)
+[ -n "$owner_identity" ] || fail "could not read case owner identity"
+records_json='[{"kind":"encounter","description":"Synthetic urgent care visit","date":"2026-09-28","provider":"Example Clinic"}]'
+call ingest_external_case "$owner_identity" external-txn-1 'Example Clinic' 12300 2026-09-28 NESSIE_SANDBOX FINCHNODE_SANDBOX "$records_json"
+call ingest_external_case "$owner_identity" external-txn-1 'Example Clinic' 12300 2026-09-28 NESSIE_SANDBOX FINCHNODE_SANDBOX "$records_json"
+[ "$(sql "SELECT id FROM bill_case" | grep -cE '^\s*[0-9]+\s*$')" = "2" ] || fail "duplicate external transaction created another case"
+call reset_demo
+[ "$(sql "SELECT id FROM bill_case" | grep -cE '^\s*[0-9]+\s*$')" = "1" ] || fail "reset_demo removed an external case"
+
 echo "SMOKE PASS"
