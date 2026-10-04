@@ -94,14 +94,17 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 
 ## Staged call and texted bill PDF
 
-- [x] Demo-mode medical records are emitted in FinchNode snapshot shape through the real normalizer and labeled "synthetic scenario data (no live FinchNode call)"; Records panel on the case page.
+- [x] Judge scenarios are FinchNode's real synthetic patients (Morgan Rivera, Harriet Lindqvist, Theo Abernathy). Records are pulled live from the keyless public demo API at investigation time (8 s timeout, one retry), kept to the encounter window (service date +/- 1 day, same organization), and labeled live or "FinchNode unreachable - using the saved copy" (fixtures in `src/services/medical/fixtures/`). Bills are generated from the pulled records (`scripts/generate-statements.mjs`). Records panel shows counts per category. The original University Hospital case keeps the "no live FinchNode call" scenario adapter.
 - [x] Hospital bill-link text policy (`evaluateHospitalBillLink`), SSRF-safe PDF fetch (`GUARDIAN_BILL_HOSTS` allowlist, redirect/IP/size/time/content limits), message-ID dedupe in `bill_link_inbox`.
 - [x] PDF text extraction (`unpdf@1.8.1`, exact pin) and tolerant bill parser with sum/date/provider validation; shared `receiveParsedBill` path with the plain-text statement.
 - [x] Live `case.reading` steps (one per real operation and per charge) and unmatched/ambiguous/rejected handling without state change.
 - [x] "Calling hospital billing" waiting screen, "Reading the bill" live panel, phone-width layout, reduced-motion support.
 - [x] ElevenLabs staged-call prompts for the three scenarios (docs/ELEVENLABS_AGENT_PROMPTS.md).
+- [x] Bill-link matching tells the three same-hospital patients apart by the PDF's patient name, then invoice number, and fails visibly when still ambiguous.
 - [ ] Set `DEMO_HOSPITAL_PHONE` and restart the app and receiver, then exercise the link path against live Spectrum/iMessage (verified only with fakes and a local fake PDF server).
-- [ ] Host the three PDFs at the allowlisted host and set `GUARDIAN_BILL_HOSTS` to match.
+- [ ] Host the three new PDFs (`morgan-rivera-ns-71802.pdf`, `harriet-lindqvist-ns-58417.pdf`, `theo-abernathy-ns-33096.pdf`) at the allowlisted host and set `GUARDIAN_BILL_HOSTS` to match.
+- [ ] Seed the three new patients into Nessie (`node scripts/nessie-seed.mjs --apply`; dry run reviewed, not applied). Earlier seeded entries for the old accident scenarios are ignored.
+- [ ] Cost review of the generated chargemaster-style prices is a later phase; the amounts are fictional.
 - [ ] Bill links are accepted only from the local receiver; the public signed webhook still accepts only the exact-grammar statement.
 - [ ] OCR for scanned PDFs (only the PDF text layer is read today).
 
