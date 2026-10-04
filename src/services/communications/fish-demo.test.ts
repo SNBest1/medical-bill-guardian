@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { FishCallError, FishDemoCommunicationProvider, type FishDemoConfig } from "./fish-demo";
+import {
+  FishCallError,
+  FishDemoCommunicationProvider,
+  fishCallIdempotencyKey,
+  type FishDemoConfig,
+} from "./fish-demo";
 
 const config: FishDemoConfig = {
   apiKey: "fish-secret",
@@ -28,7 +33,7 @@ describe("FishDemoCommunicationProvider", () => {
         headers: expect.objectContaining({
           Authorization: "Bearer fish-secret",
           "Content-Type": "application/json",
-          "Idempotency-Key": "medical-bill-guardian:CASE-4821:request-itemized-bill",
+          "Idempotency-Key": fishCallIdempotencyKey("CASE-4821", "+13135550199"),
         }),
         body: JSON.stringify({
           agent_id: "agent-1",
@@ -40,6 +45,22 @@ describe("FishDemoCommunicationProvider", () => {
     expect(result.status).toBe("PENDING");
     expect(result.result).toContain("session-1");
     expect(result.transcript).toContain("ending 0199");
+  });
+
+  it("scopes a stable idempotency key to the normalized destination without exposing phone digits", () => {
+    const first = fishCallIdempotencyKey("CASE-4821", "+13135550199");
+    const repeated = fishCallIdempotencyKey("CASE-4821", "  +13135550199  ");
+    const changed = fishCallIdempotencyKey("CASE-4821", "+13135558688");
+
+    expect(first).toBe(repeated);
+    expect(first).not.toBe(changed);
+    for (const [key, destination] of [
+      [first, "+13135550199"],
+      [changed, "+13135558688"],
+    ]) {
+      expect(key).not.toContain(destination);
+      expect(key).not.toContain(destination.slice(-4));
+    }
   });
 
   it("propagates a safe non-201 response", async () => {

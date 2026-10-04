@@ -1,9 +1,15 @@
+import { createHash } from "node:crypto";
 import type { Communication, Finding } from "../../types/domain";
 import { MockCommunicationProvider } from "./mock";
 import type { CommunicationProvider, ItemizedBillRequestContext } from "./provider";
 
 const FISH_CALL_URL = "https://api.fish.audio/v1/agent/phone-calls";
 const E164_NUMBER = /^\+[1-9]\d{7,14}$/;
+
+export function fishCallIdempotencyKey(caseId: string, toNumber: string) {
+  const destinationFingerprint = createHash("sha256").update(toNumber.trim()).digest("hex").slice(0, 16);
+  return `medical-bill-guardian:${caseId}:request-itemized-bill:${destinationFingerprint}`;
+}
 
 export type FishDemoConfig = {
   apiKey: string;
@@ -65,7 +71,7 @@ export class FishDemoCommunicationProvider implements CommunicationProvider {
         headers: {
           Authorization: `Bearer ${this.config.apiKey}`,
           "Content-Type": "application/json",
-          "Idempotency-Key": `medical-bill-guardian:${caseId}:request-itemized-bill`,
+          "Idempotency-Key": fishCallIdempotencyKey(caseId, this.config.toNumber),
         },
         body: JSON.stringify({
           agent_id: this.config.agentId,
