@@ -36,11 +36,36 @@ export async function investigateCase(current: MedicalBillCase, medical: Medical
   const encounter = matchEncounter(next.transaction, next.medicalRecords);
   if (encounter) record(next, "MATCH_ENCOUNTER", "matchEncounter", next.transaction.merchant, encounter.id, "Medical encounter located", `${encounter.description} · ${encounter.date}`, "Medical record");
   next.status = "REQUESTING_BILL";
+  // A real outbound call rings a real phone: stop here until the user authorizes it (see requestItemizedBill).
+  if (communications.requiresCallAuthorization) {
+    record(next, "AWAIT_CALL_AUTHORIZATION", "requestItemizedBill", next.provider.name, "Waiting for the user to authorize the hospital call", "Ready to call hospital billing", "Records are in. Nothing has been sent; the call needs your approval", "Case agent");
+    next.timeline[next.timeline.length - 1].status = "attention";
+    return next;
+  }
   let request;
   try { request = await communications.requestItemizedBill({ caseId: next.id, attemptId: next.auditLog[0].id, providerName: next.provider.name }); }
   catch (error) { throw new ContactAmbiguousError(`Itemized bill request may or may not have reached the provider: ${error}`); }
   next.communications.push(request);
   record(next, "REQUEST_BILL", "requestItemizedBill", next.provider.name, "Bill request submitted", "Itemized bill requested", "Waiting for the provider's statement", "Hospital billing");
+  next.status = "WAITING_FOR_BILL";
+  return next;
+}
+
+/**
+ * Places the authorized outbound call and moves to WAITING_FOR_BILL. Requires explicit
+ * authorization, the REQUESTING_BILL checkpoint, and no earlier request, so a repeat can never
+ * place a second call. Failures leave the case at REQUESTING_BILL (Fish's idempotency key makes a retry safe).
+ */
+export async function requestItemizedBill(current: MedicalBillCase, communications: CommunicationProvider, authorized: boolean): Promise<MedicalBillCase> {
+  if (!authorized) throw new Error("User authorization is required before calling hospital billing");
+  if (current.status !== "REQUESTING_BILL") throw new Error("Case is not ready to call hospital billing");
+  if (current.communications.some((item) => item.type === "ITEMIZED_BILL_REQUEST")) throw new Error("An itemized bill request already exists for this case");
+  const next = structuredClone(current);
+  const request = await communications.requestItemizedBill({ caseId: next.id, attemptId: next.auditLog[0].id, providerName: next.provider.name });
+  next.communications.push(request);
+  const approval = next.timeline.find((event) => event.title === "Ready to call hospital billing");
+  if (approval) { approval.status = "complete"; approval.title = "You authorized the hospital call"; approval.detail = "The call to hospital billing was queued"; }
+  record(next, "REQUEST_BILL", "requestItemizedBill", next.provider.name, request.result ?? "Hospital call queued", "Hospital call queued", "The authorized call asks billing to text the itemized bill; the statement has not arrived yet", "Hospital billing");
   next.status = "WAITING_FOR_BILL";
   return next;
 }

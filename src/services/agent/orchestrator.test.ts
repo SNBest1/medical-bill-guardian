@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createCase, investigateCase, analyzeCase, reviewCase, notifyCase, receiveDemoRefund, receiveItemizedStatement, ContactAmbiguousError } from "./orchestrator";
+import { createCase, investigateCase, requestItemizedBill, analyzeCase, reviewCase, notifyCase, receiveDemoRefund, receiveItemizedStatement, ContactAmbiguousError } from "./orchestrator";
 import { demoTransaction, demoStatement } from "../demo";
 import { MockMedicalRecordProvider } from "../medical/mock";
 import { MockCommunicationProvider } from "../communications/mock";
@@ -105,5 +105,63 @@ describe("case workflow", () => {
     expect(notified.summary).toMatch(/refund is not yet known/i);
     expect(() => receiveDemoRefund(notified)).toThrow(/awaiting a refund/i);
     expect(notified.communications.find((entry) => entry.type === "BILLING_REVIEW")?.transcript).toMatch(/refund amount is not confirmed/i);
+  });
+});
+
+describe("authorized hospital call checkpoint", () => {
+  const fishLike = (calls: { count: number }) => {
+    const base = new MockCommunicationProvider(Number.POSITIVE_INFINITY);
+    return Object.assign(Object.create(base), {
+      requiresCallAuthorization: true,
+      async requestItemizedBill(context: { providerName: string }) { calls.count += 1; return { ...(await base.requestItemizedBill(context)), result: "Fish call queued · session sess-9" }; },
+    }) as MockCommunicationProvider & { requiresCallAuthorization: true };
+  };
+
+  it("stops at REQUESTING_BILL without contacting the provider when a call needs authorization", async () => {
+    const calls = { count: 0 };
+    const paused = await investigateCase(createCase(demoTransaction), new MockMedicalRecordProvider(), fishLike(calls));
+    expect(paused.status).toBe("REQUESTING_BILL");
+    expect(calls.count).toBe(0);
+    expect(paused.communications).toHaveLength(0);
+    expect(paused.timeline.at(-1)).toMatchObject({ title: "Ready to call hospital billing", status: "attention" });
+  });
+
+  it("places the call only with authorization, records the session, and waits for the bill", async () => {
+    const calls = { count: 0 };
+    const provider = fishLike(calls);
+    const paused = await investigateCase(createCase(demoTransaction), new MockMedicalRecordProvider(), provider);
+    await expect(requestItemizedBill(paused, provider, false)).rejects.toThrow(/authorization/i);
+    expect(calls.count).toBe(0);
+    const waiting = await requestItemizedBill(paused, provider, true);
+    expect(calls.count).toBe(1);
+    expect(waiting.status).toBe("WAITING_FOR_BILL");
+    expect(waiting.communications).toHaveLength(1);
+    expect(waiting.communications[0]).toMatchObject({ type: "ITEMIZED_BILL_REQUEST", status: "PENDING", result: "Fish call queued · session sess-9" });
+    expect(waiting.auditLog.at(-1)).toMatchObject({ tool: "requestItemizedBill", outputSummary: "Fish call queued · session sess-9" });
+    expect(waiting.timeline.map((event) => event.title)).toContain("You authorized the hospital call");
+  });
+
+  it("refuses a second call from a waiting case or a case that already has a request", async () => {
+    const calls = { count: 0 };
+    const provider = fishLike(calls);
+    const waiting = await requestItemizedBill(await investigateCase(createCase(demoTransaction), new MockMedicalRecordProvider(), provider), provider, true);
+    await expect(requestItemizedBill(waiting, provider, true)).rejects.toThrow(/not ready/i);
+    const forced = { ...waiting, status: "REQUESTING_BILL" as const };
+    await expect(requestItemizedBill(forced, provider, true)).rejects.toThrow(/already exists/i);
+    expect(calls.count).toBe(1);
+  });
+
+  it("leaves the case at REQUESTING_BILL when the call fails", async () => {
+    const provider = Object.assign(Object.create(new MockCommunicationProvider()), { requiresCallAuthorization: true, requestItemizedBill: async () => { throw new Error("boom"); } }) as MockCommunicationProvider;
+    const paused = await investigateCase(createCase(demoTransaction), new MockMedicalRecordProvider(), provider);
+    await expect(requestItemizedBill(paused, provider, true)).rejects.toThrow("boom");
+    expect(paused.status).toBe("REQUESTING_BILL");
+    expect(paused.communications).toHaveLength(0);
+  });
+
+  it("keeps the existing mock flow when no authorization is needed", async () => {
+    const waiting = await investigateCase(createCase(demoTransaction), new MockMedicalRecordProvider(), new MockCommunicationProvider(0));
+    expect(waiting.status).toBe("WAITING_FOR_BILL");
+    expect(waiting.communications).toHaveLength(1);
   });
 });
