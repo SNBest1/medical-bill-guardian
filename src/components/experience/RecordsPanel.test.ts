@@ -37,7 +37,7 @@ describe("records panel", () => {
 
   it("shows the consent date for a sandbox pull and the reason a lower tier was used otherwise", async () => {
     const base = await pulled(serving());
-    const sandboxCase = { ...base, recordSource: { ...base.recordSource!, tier: "sandbox" as const, label: "Retrieved live from FinchNode sandbox with patient consent (synthetic patient, consent recorded 2026-10-04)", consentedAt: "2026-10-04" } };
+    const sandboxCase = { ...base, recordSource: { ...base.recordSource!, tier: "sandbox" as const, label: "Retrieved live from FinchNode sandbox with patient consent (synthetic patient, consent recorded 2026-10-04)", consentedAt: "2026-10-04", sandboxNote: undefined } };
     const sandboxHtml = renderToStaticMarkup(createElement(RecordsPanel, { caseData: sandboxCase }));
     expect(sandboxHtml).toContain("Consent recorded 2026-10-04");
     expect(sandboxHtml).not.toContain("not used");
