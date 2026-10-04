@@ -1,6 +1,8 @@
-import { callReducer, inboundKind, pendingEmails } from "./db";
+import { callReducer, inboundKind } from "./db";
+import { dispatchPending } from "./dispatch";
+import { verifiedSender } from "./sender";
 import { parseProviderReply } from "./mime";
-import { sendProviderEmail } from "./resend";
+import { allowedPdfHosts } from "./pdf-link";
 import type { Env, InboundMessage } from "./types";
 import { handleSandboxDiscover } from "./sandbox";
 
@@ -14,26 +16,21 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
 /** Ingests only correlated, sent-request replies from the configured test provider. */
 async function handleEmail(message: InboundMessage, env: Env): Promise<void> {
-  if (message.to.toLowerCase() !== "ai@nipunsaini.com") return;
-  if (message.from.toLowerCase() !== (env.PROVIDER_REPLY_EMAIL ?? "nipun.saini9@gmail.com").toLowerCase()) return;
-  const parsed = await parseProviderReply(message);
-  if (!parsed) return;
+  // One reason line per early return; never logs message content.
+  if (message.to.toLowerCase() !== "ai@nipunsaini.com") { console.log("email ignored: wrong recipient"); return; }
+  if (message.from.toLowerCase() !== (env.PROVIDER_REPLY_EMAIL ?? "nipun.saini9@gmail.com").toLowerCase()) { console.log("email ignored: sender is not the configured provider"); return; }
+  const sender = verifiedSender(message.headers, message.from);
+  if (!sender.ok) { console.warn(`ignored provider email: ${sender.reason}`); return; }
+  const parsed = await parseProviderReply(message, { allowedHosts: allowedPdfHosts(env.BILL_PDF_ALLOWED_HOSTS) });
+  if (!parsed) { console.log("email ignored: no single [CASE-n] subject marker or no Message-ID"); return; }
   const kind = await inboundKind(env, parsed.caseId);
-  if (kind === "bill" && parsed.statement) await callReducer(env, "ingest_provider_bill_email", [parsed.caseId, parsed.messageId, parsed.statement]);
-  if (kind === "review" && parsed.body) await callReducer(env, "ingest_provider_review_email", [parsed.caseId, parsed.messageId, parsed.body]);
-}
-
-/** Polls authorized outbox rows; sending stays disabled until deployment secrets and flag are set. */
-async function dispatchPending(env: Env): Promise<void> {
-  if (env.EMAIL_SEND_ENABLED !== "true") return;
-  for (const item of await pendingEmails(env)) {
-    const messageId = await sendProviderEmail(env, item);
-    await callReducer(env, "record_outbound_email", [item.caseId, item.kind, messageId]);
-  }
+  console.log(`email for case ${parsed.caseId}: expecting ${kind ?? "nothing"}; statement ${parsed.statement ? "parsed" : "not found"}`);
+  if (kind === "bill" && parsed.statement) await callReducer(env, "ingest_provider_bill_email", [Number(parsed.caseId), parsed.messageId, parsed.statement]);
+  if (kind === "review" && parsed.body) await callReducer(env, "ingest_provider_review_email", [Number(parsed.caseId), parsed.messageId, parsed.body]);
 }
 
 export default {
   fetch: handleFetch,
   email: handleEmail,
-  scheduled: (_event: unknown, env: Env) => dispatchPending(env),
+  scheduled: async (_event: unknown, env: Env) => { await dispatchPending(env); },
 };

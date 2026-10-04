@@ -12,6 +12,8 @@ export interface OutboundEmail {
   paidOn: string;
   invoiceId?: string;
   questionedCharge?: string;
+  /** Letter composed and stored by the module (the cited dispute); used as the review email's text. */
+  body?: string;
 }
 
 /** Builds a minimal, stable provider request from authorized case facts. */
@@ -23,6 +25,7 @@ export function draftProviderEmail(input: OutboundEmail) {
       text: `Please provide the itemized statement for the ${input.merchant} payment dated ${input.paidOn}. Include service dates, descriptions, codes if available, charges, insurance adjustments, and patient responsibility. Please reply with the statement as a PDF attachment. Reference ${marker} in your reply.`,
     };
   }
+  if (input.body) return { subject: `${marker} Billing dispute`, text: `${input.body}\n\nReference ${marker} in your reply.` };
   return {
     subject: `${marker} Billing review request`,
     text: `Please review invoice ${input.invoiceId ?? "on file"} for the ${input.merchant} visit dated ${input.paidOn}. The available patient-authorized record did not verify the ${input.questionedCharge ?? "questioned"} charge. Please provide supporting documentation or a corrected statement. This request does not assert that the charge is invalid. Reference ${marker} in your reply.`,
@@ -40,10 +43,15 @@ export async function sendProviderEmail(env: Env, input: OutboundEmail, fetcher:
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
       "Content-Type": "application/json",
       "Idempotency-Key": `medical-bill-guardian/${input.caseId}/${input.kind}`,
+      // Resend sits behind Cloudflare, whose bot filter rejects clients without a User-Agent (error 1010).
+      "User-Agent": "medical-bill-guardian/1.0",
     },
     body: JSON.stringify({ from: env.RESEND_FROM_EMAIL, to: [RECIPIENT], reply_to: REPLY_TO, subject, text }),
   });
-  if (!response.ok) throw new Error(`Resend send failed (${response.status})`);
+  if (!response.ok) {
+    const detail = await response.json().then((body: { message?: string }) => body.message).catch(() => undefined);
+    throw new Error(`Resend send failed (${response.status})${detail ? `: ${detail}` : ""}`);
+  }
   const result = await response.json() as { id?: string };
   if (!result.id) throw new Error("Resend did not return an email ID");
   return result.id;

@@ -20,13 +20,15 @@ Status 2026-10-03. All checked items are implemented; a deployed service is not 
 
 ## Still needed for live email
 
-- [ ] Verify that the Resend key can send from `billing@nipunsaini.com` to the authorized test inbox. Direct API requests from this machine returned Cloudflare 1010, so delivery is unverified.
-- [ ] Send and receive one synthetic PDF test through the deployed Worker; confirm the outbound communication becomes `SENT` and the reply is parsed into bill items.
-- [ ] Enable `EMAIL_SEND_ENABLED=true` and `VITE_EMAIL_ENABLED=true` only after the above test. Both are currently false.
+- [x] Resend delivery verified 2026-10-04: sends come from `billing@ai.nipunsaini.com` (the domain verified in Resend; `nipunsaini.com` itself is not registered there). The 1010 error was a missing User-Agent.
+- [x] Live round trip verified 2026-10-04 on case 6: the itemized-bill request was SENT and delivered; a Gmail reply with `docs/sample-reply-bill.pdf` passed the DMARC check and was parsed into six bill items, moving the case to REVIEW_REQUIRED.
+- [x] `EMAIL_SEND_ENABLED=true` (wrangler.jsonc) and `VITE_EMAIL_ENABLED=true` (deploy build) enabled after the test. Visitor-triggered mail is bounded by `EMAIL_DAILY_LIMIT` (20/24 h) and only ever goes to the test inbox.
 - [x] Configure the existing synthetic Nessie sandbox credentials as Worker secrets.
-- [ ] Obtain a consented FinchNode subject for the same patient. Until then, a Nessie case has no clinical evidence and the separate mock case carries the complete demo.
-- [ ] Parse real provider PDF layouts, scans, and links; current parser accepts one text PDF using the synthetic statement grammar only.
-- [ ] Add durable retry/dead-letter handling and provider identity verification beyond a sender-address filter.
+- [ ] Obtain a consented FinchNode subject for the same patient. A third sandbox Connect simulation (`cs_b8b6cff2ecdb15393067`, 2026-10-04) also stayed in `syncing` with no subject, like the earlier two; this is a FinchNode sandbox limitation. Scripts: `scripts/finchnode-start-session.mjs`, `scripts/finchnode-resolve-session.mjs`.
+- [x] Parse more provider PDF layouts and links: text is rebuilt from positioned fragments, and a reply may link one PDF on a `BILL_PDF_ALLOWED_HOSTS` host (https, no redirects, size cap).
+- [ ] Scanned (image-only) PDFs: still need manual review; there is no OCR.
+- [x] Durable retry and dead-letter: failed sends are recorded in `outbound_attempt`; after 3 the request is FAILED and the patient is told. One failure no longer blocks the outbox. A rolling 24-hour cap (`EMAIL_DAILY_LIMIT`, default 20) bounds visitor-triggered mail to the test inbox.
+- [x] Provider identity beyond the From address: replies are ingested only with Cloudflare's `dmarc=pass` aligned to the sender's domain.
 
 ## Before real patient use
 
@@ -36,3 +38,11 @@ Status 2026-10-03. All checked items are implemented; a deployed service is not 
 - [ ] Complete privacy and security review with real service agreements.
 
 The active demo is synthetic. Relay/Photon phone or chat contact is no longer the active communication path.
+
+## Dispute pipeline in SpacetimeDB (2026-10-04)
+
+- [x] Demo story moved to University of Michigan Health with real codes, setting, component, and units.
+- [x] Claim deduction stored per case (`insurance_summary`, synthetic amounts) and shown in the case view.
+- [x] Published UM Health rates embedded in the module; allowed-vs-contract comparison stored per line (`price_comparison`) and cited.
+- [x] Authorized review email carries the cited dispute letter; the smoke test checks the overpayment and the contract-rate citation.
+- [ ] Medicare fee-schedule reference rates (deferred).

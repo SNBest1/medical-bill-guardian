@@ -8,7 +8,7 @@ it("shows the case's actual provider and payment instead of demo constants", () 
   const caseData: MedicalBillCase = {
     id: "7", label: "CASE-7", status: "DETECTED",
     transaction: { id: "txn-7", merchant: "Harbor Clinic", amount: 1234, date: "2026-10-03" },
-    provider: { name: "Harbor Clinic" }, medicalRecords: [], bill: null, findings: [], communications: [], timeline: [], auditLog: [], resolution: null, summary: null, createdAt: "2026-10-03T00:00:00Z", updatedAt: "2026-10-03T00:00:00Z"
+    provider: { name: "Harbor Clinic" }, medicalRecords: [], bill: null, findings: [], insurance: null, communications: [], timeline: [], auditLog: [], resolution: null, summary: null, createdAt: "2026-10-03T00:00:00Z", updatedAt: "2026-10-03T00:00:00Z"
   };
   const html = renderToStaticMarkup(<Dashboard cases={[caseData]} onOpen={() => {}} onScan={async () => {}}/>);
   expect(html).toContain("Harbor Clinic");
@@ -21,7 +21,7 @@ it("does not offer mock clinical evidence for a sandbox purchase", () => {
   const caseData: MedicalBillCase = {
     id: "8", label: "Harbor Clinic", status: "DETECTED",
     transaction: { id: "sandbox-purchase-8", merchant: "Harbor Clinic", amount: 1234, date: "2026-10-03" },
-    provider: { name: "Harbor Clinic" }, medicalRecords: [], bill: null, findings: [], communications: [], timeline: [], auditLog: [], resolution: null, summary: null, createdAt: "2026-10-03T00:00:00Z", updatedAt: "2026-10-03T00:00:00Z"
+    provider: { name: "Harbor Clinic" }, medicalRecords: [], bill: null, findings: [], insurance: null, communications: [], timeline: [], auditLog: [], resolution: null, summary: null, createdAt: "2026-10-03T00:00:00Z", updatedAt: "2026-10-03T00:00:00Z"
   };
   const noop = async () => {};
   const html = renderToStaticMarkup(<CaseView caseData={caseData} actions={{ investigate: noop, authorize: noop, requestBillEmail: noop, authorizeEmailReview: noop, restart: noop }} emailEnabled={false} onBack={() => {}}/>);

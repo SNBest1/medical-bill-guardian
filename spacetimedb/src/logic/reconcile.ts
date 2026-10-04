@@ -3,10 +3,11 @@ import type { FindingInput, ParsedBill, RecordInput } from "./types";
 
 // Demo-only synonyms. Unknown descriptions fall back to a literal substring match, so real bills will mostly need review.
 const terms: Record<string, string[]> = {
-  "Emergency room": ["emergency room", "er visit"],
-  "CT scan": ["ct scan"],
-  "X-ray": ["x-ray"],
-  "Suture repair": ["suture", "laceration repair"],
+  "Emergency room visit": ["emergency room", "er visit"],
+  "Emergency physician services": ["emergency room", "er visit"],
+  "CT head without contrast": ["ct head", "ct scan"],
+  "Chest X-ray": ["x-ray"],
+  "Laceration repair": ["suture", "laceration repair"],
   Medication: ["medication"],
   "Specialist consultation": ["specialist consultation", "specialist encounter"]
 };

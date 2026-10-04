@@ -17,6 +17,8 @@ export function App() {
   const [timeline] = useTable(tables.myTimeline);
   const [audit] = useTable(tables.myAuditLog);
   const [communications] = useTable(tables.myCommunications);
+  const [insurance] = useTable(tables.myInsurance);
+  const [prices] = useTable(tables.myPriceComparisons);
   const scan = useReducer(reducers.scanDemoPayment);
   const investigate = useReducer(reducers.investigateCase);
   const authorize = useReducer(reducers.authorizeReview);
@@ -28,7 +30,7 @@ export function App() {
 
   useEffect(() => { if (isActive && !scanned.current) { scanned.current = true; void scan(); } }, [isActive, scan]);
 
-  const all = useMemo(() => assembleCases({ cases, records, billItems, findings, timeline, audit, communications }), [cases, records, billItems, findings, timeline, audit, communications]);
+  const all = useMemo(() => assembleCases({ cases, records, billItems, findings, timeline, audit, communications, insurance, prices }), [cases, records, billItems, findings, timeline, audit, communications, insurance, prices]);
   const actions: CaseActions = {
     investigate: (id) => investigate({ caseId: BigInt(id) }),
     authorize: (id) => authorize({ caseId: BigInt(id) }),

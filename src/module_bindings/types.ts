@@ -98,6 +98,29 @@ export const Finding = __t.object("Finding", {
 });
 export type Finding = __Infer<typeof Finding>;
 
+export const InsuranceSummary = __t.object("InsuranceSummary", {
+  caseId: __t.u64(),
+  owner: __t.identity(),
+  payer: __t.string(),
+  plan: __t.string(),
+  network: __t.string(),
+  claimStatus: __t.string(),
+  synthetic: __t.bool(),
+  billedCents: __t.i64(),
+  allowedCents: __t.i64(),
+  contractualCents: __t.i64(),
+  insurerPaidCents: __t.i64(),
+  deductibleCents: __t.i64(),
+  copayCents: __t.i64(),
+  coinsuranceCents: __t.i64(),
+  noncoveredCents: __t.i64(),
+  patientResponsibilityCents: __t.i64(),
+  possibleOverpaymentCents: __t.i64(),
+  status: __t.string(),
+  notes: __t.array(__t.string()),
+});
+export type InsuranceSummary = __Infer<typeof InsuranceSummary>;
+
 export const MedicalRecord = __t.object("MedicalRecord", {
   id: __t.u64(),
   caseId: __t.u64(),
@@ -129,11 +152,41 @@ export type MyCommunications = __Infer<typeof MyCommunications>;
 export const MyFindings = __t.object("MyFindings", {});
 export type MyFindings = __Infer<typeof MyFindings>;
 
+export const MyInsurance = __t.object("MyInsurance", {});
+export type MyInsurance = __Infer<typeof MyInsurance>;
+
 export const MyMedicalRecords = __t.object("MyMedicalRecords", {});
 export type MyMedicalRecords = __Infer<typeof MyMedicalRecords>;
 
+export const MyPriceComparisons = __t.object("MyPriceComparisons", {});
+export type MyPriceComparisons = __Infer<typeof MyPriceComparisons>;
+
 export const MyTimeline = __t.object("MyTimeline", {});
 export type MyTimeline = __Infer<typeof MyTimeline>;
+
+export const OutboundAttempt = __t.object("OutboundAttempt", {
+  communicationId: __t.u64(),
+  attempts: __t.u32(),
+  lastError: __t.string(),
+});
+export type OutboundAttempt = __Infer<typeof OutboundAttempt>;
+
+export const PriceComparison = __t.object("PriceComparison", {
+  id: __t.u64(),
+  caseId: __t.u64(),
+  owner: __t.identity(),
+  billItemId: __t.u64(),
+  referenceCents: __t.i64(),
+  comparedCents: __t.i64(),
+  comparedField: __t.string(),
+  multiple: __t.f64(),
+  basis: __t.string(),
+  sourceName: __t.string(),
+  sourceUrl: __t.string(),
+  asOf: __t.string(),
+  review: __t.bool(),
+});
+export type PriceComparison = __Infer<typeof PriceComparison>;
 
 export const ProcessedEmail = __t.object("ProcessedEmail", {
   messageId: __t.string(),

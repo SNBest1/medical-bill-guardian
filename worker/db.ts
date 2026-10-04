@@ -40,6 +40,13 @@ export async function callReducer(env: Env, reducer: string, args: unknown[], fe
 
 export interface PendingEmail extends OutboundEmail { communicationId: string }
 
+/** SQL renders option<string> as {"some": value} or {"none": []}; plain strings pass through. */
+function optionalString(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && "some" in value && typeof (value as { some: unknown }).some === "string") return (value as { some: string }).some;
+  return undefined;
+}
+
 /** Finds only explicitly authorized real-email work; mock communications have other kinds. */
 export async function pendingEmails(env: Env): Promise<PendingEmail[]> {
   const communications = await sqlRows(env, "SELECT * FROM communication WHERE status = 'PENDING'");
@@ -54,7 +61,8 @@ export async function pendingEmails(env: Env): Promise<PendingEmail[]> {
     return [{
       communicationId: String(row.id), caseId: String(row.caseId), kind,
       merchant: String(found.merchant), paidOn: String(found.paidOn),
-      invoiceId: found.invoiceId ? String(found.invoiceId) : undefined,
+      invoiceId: optionalString(found.invoiceId),
+      body: kind === "EMAIL_BILLING_REVIEW" && typeof row.transcript === "string" && row.transcript.startsWith("Medical Bill Guardian billing dispute") ? row.transcript : undefined,
     }];
   });
 }
@@ -68,4 +76,25 @@ export async function inboundKind(env: Env, caseId: string): Promise<"bill" | "r
   if (row.status === "WAITING_FOR_BILL" && communications.some((entry) => entry.kind === "EMAIL_ITEMIZED_BILL_REQUEST" && entry.status === "SENT")) return "bill";
   if (row.status === "WAITING_FOR_PROVIDER" && communications.some((entry) => entry.kind === "EMAIL_BILLING_REVIEW" && entry.status === "SENT")) return "review";
   return null;
+}
+
+/** SpacetimeDB SQL renders timestamps as micros in one of a few JSON shapes. */
+function timestampMillis(value: unknown): number | null {
+  if (typeof value === "number") return value / 1000;
+  if (Array.isArray(value)) return timestampMillis(value[0]);
+  if (value && typeof value === "object") {
+    const micros = (value as Record<string, unknown>).__timestamp_micros_since_unix_epoch__;
+    if (typeof micros === "number" || typeof micros === "string") return Number(micros) / 1000;
+  }
+  if (typeof value === "string" && value) { const parsed = Date.parse(value); return Number.isNaN(parsed) ? null : parsed; }
+  return null;
+}
+
+/** Counts real emails accepted in the last 24 hours, for the abuse cap. Unknown timestamps count. */
+export async function sentInLast24h(env: Env, now = Date.now()): Promise<number> {
+  const rows = await sqlRows(env, "SELECT * FROM communication WHERE status = 'SENT'");
+  return rows.filter((row) => String(row.kind).startsWith("EMAIL_")).filter((row) => {
+    const at = timestampMillis(row.at);
+    return at === null || now - at < 86_400_000;
+  }).length;
 }
