@@ -89,3 +89,17 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 - [x] Accept a patient iMessage command only from `DEMO_PATIENT_PHONE` (DM, iMessage, plain text, 500 characters or fewer), reusing the web command resolver through a shared `runAgentCommand` service; dedupe by message ID in SQLite; record `PHOTON_COMMAND` in the audit log without the phone number.
 - [x] Optional one-time fixed reply to the patient phone behind `PHOTON_REPLY_TEXTS` (off by default), through the Photon outbox idempotency.
 - [ ] Exercise the patient-command path and reply against live Spectrum (unit-tested with fakes only).
+
+## Staged call and texted bill PDF
+
+- [x] Demo-mode medical records are emitted in FinchNode snapshot shape through the real normalizer and labeled "synthetic scenario data (no live FinchNode call)"; Records panel on the case page.
+- [x] Hospital bill-link text policy (`evaluateHospitalBillLink`), SSRF-safe PDF fetch (`GUARDIAN_BILL_HOSTS` allowlist, redirect/IP/size/time/content limits), message-ID dedupe in `bill_link_inbox`.
+- [x] PDF text extraction (`unpdf@1.8.1`, exact pin) and tolerant bill parser with sum/date/provider validation; shared `receiveParsedBill` path with the plain-text statement.
+- [x] Live `case.reading` steps (one per real operation and per charge) and unmatched/ambiguous/rejected handling without state change.
+- [x] "Calling hospital billing" waiting screen, "Reading the bill" live panel, phone-width layout, reduced-motion support.
+- [x] ElevenLabs staged-call prompts for the three scenarios (docs/ELEVENLABS_AGENT_PROMPTS.md).
+- [ ] Set `DEMO_HOSPITAL_PHONE` and restart the app and receiver, then exercise the link path against live Spectrum/iMessage (verified only with fakes and a local fake PDF server).
+- [ ] Host the three PDFs at the allowlisted host and set `GUARDIAN_BILL_HOSTS` to match.
+- [ ] Bill links are accepted only from the local receiver; the public signed webhook still accepts only the exact-grammar statement.
+- [ ] OCR for scanned PDFs (only the PDF text layer is read today).
+
