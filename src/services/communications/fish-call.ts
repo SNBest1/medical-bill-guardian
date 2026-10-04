@@ -95,9 +95,9 @@ const spokenAmount = (amount: number) => `${amount.toLocaleString("en-US")} ${am
  * scenario and server config. It deliberately omits the invoice number and the flagged charge,
  * which are unknown until the bill arrives.
  */
-export function buildDynamicVariables(providerName: string, config: Pick<FishDemoConfig, "guardianLine">): FishDynamicVariables {
-  const scenario = scenarioForProvider(providerName);
-  if (!scenario) throw new FishConfigError([`no demo scenario for ${providerName}`]);
+export function buildDynamicVariables(providerName: string, config: Pick<FishDemoConfig, "guardianLine">, scenarioId?: string): FishDynamicVariables {
+  const scenario = scenarioForProvider(providerName, scenarioId);
+  if (!scenario) throw new FishConfigError([scenarioId ? `no demo scenario ${scenarioId} for ${providerName}` : `no single demo scenario for ${providerName}; the case must say which patient`]);
   const encounter = scenario.records.find((record) => record.type === "encounter");
   const variables: FishDynamicVariables = {
     patient_name: `${scenario.patient.firstName} ${scenario.patient.lastName}`,

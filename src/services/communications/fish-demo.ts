@@ -69,10 +69,10 @@ export class FishDemoCommunicationProvider implements CommunicationProvider {
   ) {}
 
   /** Places one outbound call. Call only after the user's explicit authorization. */
-  async requestItemizedBill({ caseId, attemptId, providerName }: ItemizedBillRequestContext): Promise<Communication> {
+  async requestItemizedBill({ caseId, attemptId, providerName, scenarioId }: ItemizedBillRequestContext): Promise<Communication> {
     const problems = fishProblems(this.config);
     if (problems.length) throw new FishConfigError(problems);
-    const dynamicVariables = buildDynamicVariables(providerName, this.config);
+    const dynamicVariables = buildDynamicVariables(providerName, this.config, scenarioId);
 
     let response: Response;
     try {
@@ -118,8 +118,8 @@ export class FishDemoCommunicationProvider implements CommunicationProvider {
   }
 
   /** A queued call is not a statement: the bill arrives only when the hospital texts it (or the configured demo fallback delivers it). */
-  getItemizedBill(providerName: string, request: Communication) {
-    return this.fallback.getItemizedBill(providerName, request);
+  getItemizedBill(providerName: string, request: Communication, scenarioId?: string) {
+    return this.fallback.getItemizedBill(providerName, request, scenarioId);
   }
 
   requestBillingReview(providerName: string, invoiceId: string, findings: Finding[], insurance?: Parameters<CommunicationProvider["requestBillingReview"]>[3]) {

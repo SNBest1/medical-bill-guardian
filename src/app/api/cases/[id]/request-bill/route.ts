@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStore } from "../../../../../lib/db";
 import { communicationProvider } from "../../../../../lib/providers";
-import { requestItemizedBill } from "../../../../../services/agent/orchestrator";
+import { requestItemizedBill, scenarioIdOf } from "../../../../../services/agent/orchestrator";
 import { mutateCase, CaseBusyError } from "../../../../../services/agent/case-operation";
 import { callBrief, buildDynamicVariables, fishConfigFromEnv, fishProblems, maskPhone } from "../../../../../services/communications/fish-call";
 import { FishCallError, FishConfigError, fishErrorMessage } from "../../../../../services/communications/fish-demo";
@@ -19,7 +19,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (!config) return NextResponse.json({ fish: false });
   const problems = fishProblems(config);
   let brief: string[] = [];
-  try { brief = callBrief(buildDynamicVariables(current.provider.name, config)); } catch { problems.push("this case has no demo scenario to brief the call"); }
+  try { brief = callBrief(buildDynamicVariables(current.provider.name, config, scenarioIdOf(current))); } catch { problems.push("this case has no demo scenario to brief the call"); }
   return NextResponse.json({ fish: true, ready: problems.length === 0, problems, brief, destination: maskPhone(config.toNumber), guardianLine: maskPhone(config.guardianLine) });
 }
 

@@ -9,7 +9,7 @@ const config: FishDemoConfig = {
   hospitalPhone: "+15555550100",
   guardianLine: "+15555550142",
 };
-const ctx = { caseId: "CASE-1", attemptId: "run-a", providerName: "Lakeside Regional Medical Center" };
+const ctx = { caseId: "CASE-1", attemptId: "run-a", providerName: "Northstar Health System", scenarioId: "morgan-wellness" };
 
 const response = (body: unknown, status: number) => new Response(typeof body === "string" ? body : JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 const ok = () => vi.fn<typeof fetch>().mockResolvedValue(response({ session_id: "sess-1", status: "queued" }, 201));
@@ -29,11 +29,11 @@ describe("FishDemoCommunicationProvider", () => {
       phone_number_id: "phone-1",
       to_number: "+15555550100",
       dynamic_variables: {
-        patient_name: "Maya Ortiz",
-        hospital_name: "Lakeside Regional Medical Center",
-        payment_amount: "3,140 dollars",
-        payment_date: "September 14th",
-        service_date: "September 14th",
+        patient_name: "Morgan Rivera",
+        hospital_name: "Northstar Health System",
+        payment_amount: "1,102 dollars",
+        payment_date: "July 18th",
+        service_date: "July 18th",
         guardian_line: "+15555550142",
         guardian_line_spoken: "+1; 5 5 5; 5 5 5; 0 1 4 2",
       },
@@ -49,15 +49,15 @@ describe("FishDemoCommunicationProvider", () => {
     const fetcher = ok();
     await new FishDemoCommunicationProvider(config, fetcher).requestItemizedBill(ctx);
     const body = String(fetcher.mock.calls[0][1]?.body);
-    expect(body).not.toMatch(/invoice|Orthopedic|consultation/i);
+    expect(body).not.toMatch(/invoice|NS-71802|electrocardiogram/i);
   });
 
   it("builds variables per patient from the case's scenario", async () => {
     const fetcher = ok();
-    await new FishDemoCommunicationProvider(config, fetcher).requestItemizedBill({ ...ctx, providerName: "Summit Trauma Hospital" });
+    await new FishDemoCommunicationProvider(config, fetcher).requestItemizedBill({ ...ctx, scenarioId: "harriet-kidney" });
     const vars = JSON.parse(String(fetcher.mock.calls[0][1]?.body)).dynamic_variables;
-    expect(vars.patient_name).toMatch(/^Daniel /);
-    expect(vars).toMatchObject({ hospital_name: "Summit Trauma Hospital", payment_amount: "6,760 dollars", payment_date: "September 21st" });
+    expect(vars.patient_name).toMatch(/^Harriet /);
+    expect(vars).toMatchObject({ hospital_name: "Northstar Health System", payment_amount: "964 dollars", payment_date: "January 20th" });
   });
 
   it("scopes the idempotency key to run and destination without exposing digits", () => {
@@ -124,6 +124,6 @@ describe("FishDemoCommunicationProvider", () => {
     const provider = new FishDemoCommunicationProvider(config, ok());
     const request = await provider.requestItemizedBill(ctx);
     expect(provider.requiresCallAuthorization).toBe(true);
-    await expect(provider.getItemizedBill(ctx.providerName, { ...request, timestamp: "2020-01-01T00:00:00Z" })).resolves.toBeNull();
+    await expect(provider.getItemizedBill(ctx.providerName, { ...request, timestamp: "2020-01-01T00:00:00Z" }, ctx.scenarioId)).resolves.toBeNull();
   });
 });

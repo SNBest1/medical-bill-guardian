@@ -2,13 +2,13 @@ import type { Communication, Finding, InsuranceContext, Resolution } from "../..
 import type { CommunicationProvider, ItemizedBillRequestContext } from "./provider";
 import { billRequestTurns, billingReviewTurns } from "./demo-call";
 import { parseItemizedBill } from "./parse-bill";
-import { scenarioForProvider } from "../scenarios";
+import { scenarioForInvoice, scenarioForProvider } from "../scenarios";
 
 const communication = (type: Communication["type"], transcript: string, result: string): Communication => ({ id: crypto.randomUUID(), type, timestamp: new Date().toISOString(), status: "COMPLETED", transcript, result });
 const script = (turns: { speaker: string; text: string }[]) => turns.map((turn) => `${turn.speaker}: ${turn.text}`).join("\n");
-const fixtureFor = (providerName: string) => {
-  const scenario = scenarioForProvider(providerName);
-  if (!scenario) throw new Error(`The demo fixture has no scenario for ${providerName}`);
+const fixtureFor = (providerName: string, scenarioId?: string) => {
+  const scenario = scenarioForProvider(providerName, scenarioId);
+  if (!scenario) throw new Error(scenarioId ? `The demo fixture has no scenario ${scenarioId} for ${providerName}` : `The demo fixture cannot tell which patient at ${providerName} this is without a scenario`);
   return scenario;
 };
 
@@ -16,20 +16,21 @@ export class MockCommunicationProvider implements CommunicationProvider {
   constructor(private readonly billDelayMs = 750) {}
 
   /** Records a pending request without contacting a hospital. */
-  async requestItemizedBill({ providerName }: ItemizedBillRequestContext) {
-    return { ...communication("ITEMIZED_BILL_REQUEST", script(billRequestTurns(fixtureFor(providerName))), "Awaiting itemized statement"), status: "PENDING" as const };
+  async requestItemizedBill({ providerName, scenarioId }: ItemizedBillRequestContext) {
+    return { ...communication("ITEMIZED_BILL_REQUEST", script(billRequestTurns(fixtureFor(providerName, scenarioId))), "Awaiting itemized statement"), status: "PENDING" as const };
   }
 
   /** Delivers the scenario's plain-text statement after the mock provider's short delay. */
-  async getItemizedBill(providerName: string, request: Communication) {
-    const scenario = fixtureFor(providerName);
+  async getItemizedBill(providerName: string, request: Communication, scenarioId?: string) {
+    const scenario = fixtureFor(providerName, scenarioId);
     if (request.type !== "ITEMIZED_BILL_REQUEST") throw new Error("The demo fixture supports only itemized bill requests");
     return Date.now() - Date.parse(request.timestamp) >= this.billDelayMs ? scenario.statement : null;
   }
 
   /** Supplies the scenario's seeded provider answer after explicit authorization. */
   async requestBillingReview(providerName: string, invoiceId: string, findings: Finding[], insurance?: InsuranceContext) {
-    const scenario = fixtureFor(providerName);
+    // The invoice number identifies the patient when several share this hospital.
+    const scenario = scenarioForInvoice(providerName, invoiceId) ?? fixtureFor(providerName);
     const bill = parseItemizedBill(scenario.statement);
     if (invoiceId !== bill.invoiceId) throw new Error("The demo fixture supports only the seeded invoice for this hospital");
     const { flagged, result, explanation } = scenario.outcome;

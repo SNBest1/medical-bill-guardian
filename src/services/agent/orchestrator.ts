@@ -1,4 +1,4 @@
-import type { ItemizedBill, MedicalBillCase, Transaction } from "../../types/domain";
+import type { ItemizedBill, MedicalBillCase, MedicalRecord, RecordSource, Transaction } from "../../types/domain";
 import type { MedicalRecordProvider } from "../medical/provider";
 import type { CommunicationProvider } from "../communications/provider";
 import { reconcile } from "../reconciliation/reconcile";
@@ -7,7 +7,8 @@ import { generateCaseSummary } from "./summary";
 import { parseItemizedBill } from "../communications/parse-bill";
 import { comparePrices, loadPriceReferences } from "../reconciliation/pricing";
 import { assessPatientBalance } from "../reconciliation/insurance";
-import { isDemoTransaction } from "../scenarios";
+import { isDemoTransaction, scenarioForTransaction } from "../scenarios";
+import { describeRecordSource } from "../medical/record-source";
 
 /** A provider contact attempt failed after being sent; it may or may not have reached the provider, so retrying automatically is unsafe. */
 export class ContactAmbiguousError extends Error {}
@@ -18,6 +19,9 @@ function record(caseData: MedicalBillCase, action: string, tool: string, inputSu
   caseData.timeline.push({ id: crypto.randomUUID(), timestamp, title, detail, source, status: "complete" });
   caseData.updatedAt = timestamp;
 }
+
+/** The scenario a case belongs to: the recorded selection, else the one whose seeded payment matches the transaction (the FinchNode patients share one hospital name, so the provider alone is ambiguous). */
+export const scenarioIdOf = (current: MedicalBillCase): string | undefined => current.scenarioId ?? scenarioForTransaction(current.transaction)?.id;
 
 /** Creates a case from a qualifying bank transaction. */
 export function createCase(transaction: Transaction): MedicalBillCase {
@@ -30,9 +34,12 @@ export async function investigateCase(current: MedicalBillCase, medical: Medical
   if (current.status !== "DETECTED") return current;
   const next = structuredClone(current);
   next.status = "FETCHING_RECORDS";
-  next.medicalRecords = await medical.getMedicalRecords(next.transaction);
-  if (medical.sourceLabel) next.recordSource = { label: medical.sourceLabel, live: false };
-  record(next, "FETCH_RECORDS", "getMedicalRecords", next.transaction.date, medical.sourceLabel ? `${next.medicalRecords.length} records. ${medical.sourceLabel}` : `${next.medicalRecords.length} records`, "Medical records retrieved", medical.sourceLabel ? `${next.medicalRecords.length} records. ${medical.sourceLabel}` : `${next.medicalRecords.length} relevant records found near the payment date`, "Medical record");
+  // A provider that reports how it obtained the records (live pull or labeled fallback) is recorded exactly; otherwise only its static label is.
+  const retrieved: { records: MedicalRecord[]; source?: RecordSource } = medical.retrieve ? await medical.retrieve(next.transaction) : { records: await medical.getMedicalRecords(next.transaction), source: medical.sourceLabel ? { label: medical.sourceLabel, live: false } : undefined };
+  next.medicalRecords = retrieved.records;
+  if (retrieved.source) next.recordSource = retrieved.source;
+  const sourceNote = retrieved.source ? describeRecordSource(retrieved.source, next.medicalRecords.length) : undefined;
+  record(next, "FETCH_RECORDS", "getMedicalRecords", retrieved.source?.subject ? `${retrieved.source.subject} · ${next.transaction.date}` : next.transaction.date, sourceNote ?? `${next.medicalRecords.length} records`, "Medical records retrieved", sourceNote ?? `${next.medicalRecords.length} relevant records found near the payment date`, "Medical record");
   const encounter = matchEncounter(next.transaction, next.medicalRecords);
   if (encounter) record(next, "MATCH_ENCOUNTER", "matchEncounter", next.transaction.merchant, encounter.id, "Medical encounter located", `${encounter.description} · ${encounter.date}`, "Medical record");
   next.status = "REQUESTING_BILL";
@@ -43,7 +50,7 @@ export async function investigateCase(current: MedicalBillCase, medical: Medical
     return next;
   }
   let request;
-  try { request = await communications.requestItemizedBill({ caseId: next.id, attemptId: next.auditLog[0].id, providerName: next.provider.name }); }
+  try { request = await communications.requestItemizedBill({ caseId: next.id, attemptId: next.auditLog[0].id, providerName: next.provider.name, scenarioId: scenarioIdOf(next) }); }
   catch (error) { throw new ContactAmbiguousError(`Itemized bill request may or may not have reached the provider: ${error}`); }
   next.communications.push(request);
   record(next, "REQUEST_BILL", "requestItemizedBill", next.provider.name, "Bill request submitted", "Itemized bill requested", "Waiting for the provider's statement", "Hospital billing");
@@ -61,7 +68,7 @@ export async function requestItemizedBill(current: MedicalBillCase, communicatio
   if (current.status !== "REQUESTING_BILL") throw new Error("Case is not ready to call hospital billing");
   if (current.communications.some((item) => item.type === "ITEMIZED_BILL_REQUEST")) throw new Error("An itemized bill request already exists for this case");
   const next = structuredClone(current);
-  const request = await communications.requestItemizedBill({ caseId: next.id, attemptId: next.auditLog[0].id, providerName: next.provider.name });
+  const request = await communications.requestItemizedBill({ caseId: next.id, attemptId: next.auditLog[0].id, providerName: next.provider.name, scenarioId: scenarioIdOf(next) });
   next.communications.push(request);
   const approval = next.timeline.find((event) => event.title === "Ready to call hospital billing");
   if (approval) { approval.status = "complete"; approval.title = "You authorized the hospital call"; approval.detail = "The call to hospital billing was queued"; }
@@ -75,7 +82,7 @@ export async function analyzeCase(current: MedicalBillCase, communications: Comm
   if (current.status !== "WAITING_FOR_BILL") return current;
   const request = current.communications.find((item) => item.type === "ITEMIZED_BILL_REQUEST");
   if (!request) throw new Error("Itemized bill request is missing");
-  const statement = await communications.getItemizedBill(current.provider.name, request);
+  const statement = await communications.getItemizedBill(current.provider.name, request, scenarioIdOf(current));
   if (!statement) {
     const next = structuredClone(current);
     next.auditLog.push({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), action: "CHECK_BILL", tool: "getItemizedBill", inputSummary: request.id, outputSummary: "Statement not yet available", status: "SUCCESS" });
