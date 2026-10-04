@@ -34,4 +34,18 @@ describe("reconcile", () => {
     const result = reconcile({ ...demoBill, total: 4800 }, demoRecords);
     expect(result.some((item) => item.clinicalStatus === "AMOUNT_REVIEW")).toBe(true);
   });
+
+  it("matches an exact-name term only against the whole record name, so hemoglobin is not confused with hemoglobin A1c", () => {
+    const bill = { invoiceId: "T-1", provider: "Northstar Health System", total: 41, items: [{ id: "bill-1", description: "Hemoglobin", code: "85018", amount: 41, serviceDate: "2026-07-18" }] };
+    const a1c = { id: "a1c", type: "lab" as const, description: "Hemoglobin A1c", date: "2026-07-18", provider: "Northstar Health System (Synthetic)" };
+    expect(reconcile(bill, [a1c])[0]).toMatchObject({ clinicalStatus: "NO_MATCH_FOUND", action: "REQUEST_REVIEW" });
+    expect(reconcile(bill, [a1c, { ...a1c, id: "hgb", description: "Hemoglobin" }])[0]).toMatchObject({ clinicalStatus: "SUPPORTED", evidenceRecordIds: ["hgb"] });
+  });
+
+  it("treats a missing record as a question to ask, never as proof the charge is wrong", () => {
+    const bill = { invoiceId: "T-2", provider: "Northstar Health System", total: 310, items: [{ id: "bill-1", description: "Electrocardiogram, 12-lead", code: "93000", amount: 310, serviceDate: "2026-07-18" }] };
+    const [finding] = reconcile(bill, [{ id: "visit", type: "encounter", description: "Annual wellness visit", date: "2026-07-18", provider: "Northstar Health System (Synthetic)" }]);
+    expect(finding).toMatchObject({ clinicalStatus: "NO_MATCH_FOUND", action: "REQUEST_REVIEW" });
+    expect(finding.explanation).toMatch(/does not prove the charge is incorrect/);
+  });
 });

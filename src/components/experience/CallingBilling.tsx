@@ -32,7 +32,7 @@ const isFishCall = (caseData: MedicalBillCase) => Boolean(caseData.communication
 
 export function CallStatusLines({ caseData }: { caseData: MedicalBillCase }) {
   const lines = [
-    { done: true, text: caseData.recordSource ? "Records retrieved (FinchNode record format, synthetic)" : "Medical records retrieved" },
+    { done: true, text: caseData.recordSource?.subject ? `Medical records retrieved (${caseData.medicalRecords.length} for this visit)` : caseData.recordSource ? "Records retrieved (FinchNode record format, synthetic)" : "Medical records retrieved" },
     { done: true, text: isFishCall(caseData) ? `Called ${caseData.provider.name} billing and asked for the itemized bill` : `Itemized bill requested from ${caseData.provider.name} billing` },
     { done: false, text: "Waiting for the hospital to text the itemized bill" }
   ];

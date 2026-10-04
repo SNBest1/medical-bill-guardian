@@ -21,6 +21,8 @@ export type FishDemoConfig = {
   hospitalPhone: string;
   /** The Guardian line the hospital is asked to text the bill link to (SPECTRUM_HOSPITAL_ASSIGNED_LINE). */
   guardianLine: string;
+  /** Published Fish agent that disputes a questioned charge (FISH_REVIEW_AGENT_ID). Without it the review stays a rehearsed script. */
+  reviewAgentId?: string;
 };
 
 export type FishDynamicVariables = Record<string, string>;
@@ -44,6 +46,7 @@ export function fishConfigFromEnv(env: Record<string, string | undefined> = proc
     toNumber: clean(env.FISH_TEST_TO_NUMBER),
     hospitalPhone: clean(env.DEMO_HOSPITAL_PHONE),
     guardianLine: clean(env.SPECTRUM_HOSPITAL_ASSIGNED_LINE),
+    reviewAgentId: clean(env.FISH_REVIEW_AGENT_ID) || undefined,
   };
   return config.apiKey && config.agentId && config.phoneNumberId && config.toNumber ? config : null;
 }
@@ -65,7 +68,7 @@ export const maskPhone = (phone: string) => phone.length >= 4 ? `ending ${phone.
 
 const cap = (value: string) => value.length > MAX_VARIABLE_LENGTH ? value.slice(0, MAX_VARIABLE_LENGTH) : value;
 
-/** "+14156057073" -> "+1; 4 1 5; 6 0 5; 7 0 7 3", the grouping Fish uses for system.caller_number_spoken. */
+/** "+15555550100" -> "+1; 5 5 5; 5 5 5; 0 1 0 0", the grouping Fish uses for system.caller_number_spoken. */
 export function spokenNumber(e164: string): string {
   const digits = e164.replace(/\D/g, "");
   const spaced = (value: string) => value.split("").join(" ");
@@ -95,9 +98,9 @@ const spokenAmount = (amount: number) => `${amount.toLocaleString("en-US")} ${am
  * scenario and server config. It deliberately omits the invoice number and the flagged charge,
  * which are unknown until the bill arrives.
  */
-export function buildDynamicVariables(providerName: string, config: Pick<FishDemoConfig, "guardianLine">): FishDynamicVariables {
-  const scenario = scenarioForProvider(providerName);
-  if (!scenario) throw new FishConfigError([`no demo scenario for ${providerName}`]);
+export function buildDynamicVariables(providerName: string, config: Pick<FishDemoConfig, "guardianLine">, scenarioId?: string): FishDynamicVariables {
+  const scenario = scenarioForProvider(providerName, scenarioId);
+  if (!scenario) throw new FishConfigError([scenarioId ? `no demo scenario ${scenarioId} for ${providerName}` : `no single demo scenario for ${providerName}; the case must say which patient`]);
   const encounter = scenario.records.find((record) => record.type === "encounter");
   const variables: FishDynamicVariables = {
     patient_name: `${scenario.patient.firstName} ${scenario.patient.lastName}`,

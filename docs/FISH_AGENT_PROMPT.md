@@ -2,19 +2,19 @@
 
 Medical Bill Guardian can place one real outbound phone call through Fish Audio's agent phone-call API after a judge picks a patient and the user explicitly presses **Authorize hospital call**. The person who answers plays hospital billing, then texts an itemized-bill PDF link to the Guardian line; the app reads that link as it already does.
 
-One published Fish agent serves Maya, Daniel, and Priya. The app sends per-call `dynamic_variables` on `POST https://api.fish.audio/v1/agent/phone-calls` (documented at https://docs.fish.audio/agents/build/dynamic-variables), and Fish fills the `{{placeholders}}` below. An unfilled placeholder stays literal, so paste the text exactly. Everything is fictional; no real health or financial data is involved, and the called person role-plays hospital billing.
+One published Fish agent serves Morgan, Harriet, and Theo (FinchNode's synthetic patients; all three were seen at Northstar Health System, so the hospital name does not identify the patient and the case supplies the patient's variables). The app sends per-call `dynamic_variables` on `POST https://api.fish.audio/v1/agent/phone-calls` (documented at https://docs.fish.audio/agents/build/dynamic-variables), and Fish fills the `{{placeholders}}` below. An unfilled placeholder stays literal, so paste the text exactly. Everything is fictional; no real health or financial data is involved, and the called person role-plays hospital billing.
 
 ## Variables the app sends
 
 | Variable | Example | Meaning |
 | --- | --- | --- |
-| `patient_name` | Maya Ortiz | Fictional patient the assistant acts for |
-| `hospital_name` | Lakeside Regional Medical Center | Hospital being called |
-| `payment_amount` | 3,140 dollars | Amount paid, ready to speak |
-| `payment_date` | September 14th | Payment date, ready to speak |
-| `service_date` | September 14th | Visit date, ready to speak |
+| `patient_name` | Morgan Rivera | Fictional patient the assistant acts for |
+| `hospital_name` | Northstar Health System | Hospital being called |
+| `payment_amount` | 1,102 dollars | Amount paid, ready to speak |
+| `payment_date` | July 18th | Payment date, ready to speak |
+| `service_date` | July 18th | Visit date, ready to speak |
 | `guardian_line` | an E.164 number | The line the hospital should text the bill link to (`SPECTRUM_HOSPITAL_ASSIGNED_LINE`) |
-| `guardian_line_spoken` | `+1; 4 1 5; 6 0 5; 7 0 7 3` style | Same number grouped for speech |
+| `guardian_line_spoken` | `+1; 5 5 5; 5 5 5; 0 1 0 0` style | Same number grouped for speech |
 
 The invoice number and flagged charge are not sent: they are unknown until the bill arrives.
 

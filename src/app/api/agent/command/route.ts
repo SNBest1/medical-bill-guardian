@@ -7,7 +7,7 @@ import { CaseBusyError } from "@/services/agent/case-operation";
 import { runAgentCommand } from "@/services/agent/run-command";
 
 export const runtime = "nodejs";
-/** Takes a typed or spoken instruction such as "investigate Maya's hospital bill", finds that
+/** Takes a typed or spoken instruction such as "investigate Morgan's hospital bill", finds that
  * patient's case, and starts the agent. The instruction is the patient's request to collect
  * records and an itemized bill; contacting hospital billing still needs its own approval later. */
 export async function POST(request: Request) {
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({})) as { text?: string; scenarioId?: string };
   try {
     const outcome = await runAgentCommand(getStore(), body, { bank: bankProvider, medical: medicalProvider(), communications: communicationProvider() });
-    if (outcome.kind === "unknown") return NextResponse.json({ error: "I couldn't tell which bill you mean. Try a patient's name, like “investigate Maya's hospital bill”." }, { status: 422 });
+    if (outcome.kind === "unknown") return NextResponse.json({ error: "I couldn't tell which bill you mean. Try a patient's name, like “investigate Morgan's hospital bill”." }, { status: 422 });
     if (outcome.kind === "ambiguous") return NextResponse.json({ error: `That could be more than one bill: ${outcome.options.map((option) => `${option.patient.firstName} ${option.patient.lastName}`).join(" or ")}. Which one?` }, { status: 422 });
     return NextResponse.json({ case: outcome.case, scenario: outcome.scenario.id, patient: outcome.patient, resumed: outcome.resumed });
   } catch (error) {

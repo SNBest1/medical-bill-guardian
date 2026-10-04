@@ -55,6 +55,23 @@ export function useCaseSession(id: string) {
     return () => { cancelled = true; window.clearInterval(timer); };
   }, [caseData?.status, id, pollStalled, pollAttempt, reading]);
 
+  // While the live review call is in progress, ask the server to read its transcript; it records the outcome once the call ends.
+  useEffect(() => {
+    if (caseData?.status !== "WAITING_FOR_PROVIDER") return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/cases/${id}/settle-review`, { method: "POST" });
+        const data = await response.json();
+        if (cancelled) return;
+        if (response.ok || response.status === 202) { setError(""); setCaseData(data); }
+      } catch { /* the next tick asks again */ }
+    };
+    const timer = window.setInterval(() => void poll(), 1500);
+    void poll();
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [caseData?.status, id]);
+
   const retryPoll = useCallback(() => { setError(""); setPollStalled(false); setPollAttempt((attempt) => attempt + 1); }, []);
 
   const action = useCallback(async (path: string, body: object = {}) => {

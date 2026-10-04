@@ -1,9 +1,9 @@
 import { scenarios, type Scenario } from "../scenarios";
 
 const keywords: Record<string, string[]> = {
-  "bike-wrist": ["wrist", "cycling", "cyclist", "bike", "bicycle", "fracture", "broken"],
-  "car-concussion": ["concussion", "collision", "rear", "car", "neck", "whiplash"],
-  "ski-ankle": ["ski", "skiing", "ankle", "sprain", "sprained"]
+  "morgan-wellness": ["wellness", "diabetes", "diabetic", "annual", "checkup", "metformin"],
+  "harriet-kidney": ["kidney", "kidneys", "renal", "heart", "cardiac", "ckd", "afib", "senior"],
+  "theo-asthma": ["asthma", "asthmatic", "child", "kid", "pediatric", "inhaler", "boy"]
 };
 
 export type CommandResult =
@@ -11,9 +11,10 @@ export type CommandResult =
   | { kind: "ambiguous"; options: Scenario[] }
   | { kind: "unknown" };
 
-/** Works out which patient's bill a typed or spoken instruction refers to. A patient name or hospital
- * is a strong match; injury words are weaker. Deterministic on purpose: it only chooses among the
- * three known cases and never invents one. */
+/** Works out which patient's bill a typed or spoken instruction refers to. A patient name is a strong
+ * match and a condition word is weaker. The hospital name is shared by all three patients, so it adds
+ * the same points to each and can never pick one: "the Northstar bill" is ambiguous, "Morgan at
+ * Northstar" is Morgan. Deterministic on purpose: it only chooses among the known cases and never invents one. */
 export function resolveCommand(text: string): CommandResult {
   const words = new Set(text.toLowerCase().replace(/['’]s\b/g, "").split(/[^a-z]+/).filter(Boolean));
   const scored = scenarios.map((scenario) => {

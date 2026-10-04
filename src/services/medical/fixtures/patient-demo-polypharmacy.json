@@ -1,0 +1,978 @@
+{
+ "_fixture": {
+  "note": "Trimmed copy of a real response from the keyless FinchNode public demo API. Used only as the offline fallback and in tests.",
+  "endpoint": "GET https://api.finchnode.com/demo/v1/users/patient-demo-polypharmacy/records",
+  "savedAt": "2026-10-04",
+  "dataAsOf": "2026-09-01T00:00:00Z",
+  "trimmed": true
+ },
+ "id": "patient-demo-polypharmacy",
+ "object": "health_record",
+ "synthetic": true,
+ "environment": "demo",
+ "data": {
+  "demographics": {
+   "name": "Harriet Lindqvist",
+   "birthDate": "1948-03-02",
+   "gender": "female"
+  },
+  "encounters": [
+   {
+    "type": "Primary care follow-up",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2024-03-05T14:00:00Z",
+    "id": "rec_06d98bf867d72a3b25d6fb38",
+    "sourceRecordId": "Encounter/polypharmacy-senior-demo-encounter-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Primary care follow-up",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2024-06-04T14:00:00Z",
+    "id": "rec_2ceedb1a652af657c0eecc6a",
+    "sourceRecordId": "Encounter/polypharmacy-senior-demo-encounter-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Primary care follow-up",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2024-09-10T14:00:00Z",
+    "id": "rec_c5d8d5fdc6f3c492e8acd73f",
+    "sourceRecordId": "Encounter/polypharmacy-senior-demo-encounter-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Primary care follow-up",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2024-12-03T14:00:00Z",
+    "id": "rec_7358a79dfe49b787cf167f75",
+    "sourceRecordId": "Encounter/polypharmacy-senior-demo-encounter-4",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Cardiology follow-up",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2025-02-11T14:00:00Z",
+    "id": "rec_ac9ae3e99a129b28733ecc24",
+    "sourceRecordId": "Encounter/polypharmacy-senior-demo-encounter-5",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Primary care follow-up",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2025-03-11T14:00:00Z",
+    "id": "rec_97614c085f0bf03642a97c16",
+    "sourceRecordId": "Encounter/polypharmacy-senior-demo-encounter-6",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Primary care follow-up",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2025-06-17T14:00:00Z",
+    "id": "rec_658fcca6aa5778901a12d033",
+    "sourceRecordId": "Encounter/polypharmacy-senior-demo-encounter-7",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Cardiology follow-up",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2025-08-19T14:00:00Z",
+    "id": "rec_98eeaa27d1babde0538b0e5a",
+    "sourceRecordId": "Encounter/polypharmacy-senior-demo-encounter-8",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Primary care follow-up",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2025-10-14T14:00:00Z",
+    "id": "rec_98cfbb3d778bda55149b81c5",
+    "sourceRecordId": "Encounter/polypharmacy-senior-demo-encounter-9",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "type": "Primary care follow-up",
+    "status": "finished",
+    "class": "AMB",
+    "startDate": "2026-01-20T14:00:00Z",
+    "id": "rec_85953451af7689f018656bf8",
+    "sourceRecordId": "Encounter/polypharmacy-senior-demo-encounter-10",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "diagnosticReports": [
+   {
+    "name": "Kidney function draw (creatinine, eGFR, potassium, sodium, BUN)",
+    "code": "11502-2",
+    "status": "final",
+    "category": "Laboratory",
+    "effectiveDate": "2025-01-14T08:30:00Z",
+    "issuedDate": "2025-01-14T08:30:00Z",
+    "id": "rec_48e7217737ce51cc890e5f2d",
+    "sourceRecordId": "DiagnosticReport/polypharmacy-senior-demo-report-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Kidney function draw (creatinine, eGFR, potassium, sodium, BUN)",
+    "code": "11502-2",
+    "status": "final",
+    "category": "Laboratory",
+    "effectiveDate": "2025-07-15T08:30:00Z",
+    "issuedDate": "2025-07-15T08:30:00Z",
+    "id": "rec_cb48d91e358788e39a811430",
+    "sourceRecordId": "DiagnosticReport/polypharmacy-senior-demo-report-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Kidney function draw (creatinine, eGFR, potassium, sodium, BUN)",
+    "code": "11502-2",
+    "status": "final",
+    "category": "Laboratory",
+    "effectiveDate": "2026-01-20T08:30:00Z",
+    "issuedDate": "2026-01-20T08:30:00Z",
+    "id": "rec_3136b32083e3a3f018727339",
+    "sourceRecordId": "DiagnosticReport/polypharmacy-senior-demo-report-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Kidney function draw (creatinine, eGFR, potassium, sodium, BUN)",
+    "code": "11502-2",
+    "status": "final",
+    "category": "Laboratory",
+    "effectiveDate": "2026-07-14T08:30:00Z",
+    "issuedDate": "2026-07-14T08:30:00Z",
+    "id": "rec_634a01c1ba0fae3e9f2b54ad",
+    "sourceRecordId": "DiagnosticReport/polypharmacy-senior-demo-report-4",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "labs": [
+   {
+    "name": "Creatinine [Mass/volume] in Serum or Plasma",
+    "value": "1.4",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2025-01-14T08:30:00Z",
+    "id": "rec_f1a764aa4b55381c2c4ef292",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI 2021)/1.73 sq M",
+    "value": "39",
+    "unit": "mL/min/{1.73_m2}",
+    "status": "final",
+    "date": "2025-01-14T08:30:00Z",
+    "id": "rec_5a388fd2af70cc6e0bafc0ff",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Potassium [Moles/volume] in Serum or Plasma",
+    "value": "4.3",
+    "unit": "mmol/L",
+    "status": "final",
+    "date": "2025-01-14T08:30:00Z",
+    "id": "rec_00e91d1219e3b8703c24cf42",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Sodium [Moles/volume] in Serum or Plasma",
+    "value": "139",
+    "unit": "mmol/L",
+    "status": "final",
+    "date": "2025-01-14T08:30:00Z",
+    "id": "rec_9fcdc8e23b6bd028455b4e59",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-4",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Urea nitrogen [Mass/volume] in Serum or Plasma",
+    "value": "24",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2025-01-14T08:30:00Z",
+    "id": "rec_99a1dbb2dfed15ea1c2a6cd3",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-5",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Creatinine [Mass/volume] in Serum or Plasma",
+    "value": "1.5",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2025-07-15T08:30:00Z",
+    "id": "rec_19ba12cc25f9e98a17f77954",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-6",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI 2021)/1.73 sq M",
+    "value": "36",
+    "unit": "mL/min/{1.73_m2}",
+    "status": "final",
+    "date": "2025-07-15T08:30:00Z",
+    "id": "rec_d2fc40b555e1d9841996b53c",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-7",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Potassium [Moles/volume] in Serum or Plasma",
+    "value": "4.6",
+    "unit": "mmol/L",
+    "status": "final",
+    "date": "2025-07-15T08:30:00Z",
+    "id": "rec_ac45d2cb4748b2b90c90051e",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-8",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Sodium [Moles/volume] in Serum or Plasma",
+    "value": "138",
+    "unit": "mmol/L",
+    "status": "final",
+    "date": "2025-07-15T08:30:00Z",
+    "id": "rec_8ab370ec2c5e350406e6fed9",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-9",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Urea nitrogen [Mass/volume] in Serum or Plasma",
+    "value": "27",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2025-07-15T08:30:00Z",
+    "id": "rec_ae443eb2889435e5ed1e5fd8",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-10",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Creatinine [Mass/volume] in Serum or Plasma",
+    "value": "1.6",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-01-20T08:30:00Z",
+    "id": "rec_84ba2b3344297f4af6feb417",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-11",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI 2021)/1.73 sq M",
+    "value": "33",
+    "unit": "mL/min/{1.73_m2}",
+    "status": "final",
+    "date": "2026-01-20T08:30:00Z",
+    "id": "rec_fc8a3b45c6f176dd12b6c72d",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-12",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Potassium [Moles/volume] in Serum or Plasma",
+    "value": "4.1",
+    "unit": "mmol/L",
+    "status": "final",
+    "date": "2026-01-20T08:30:00Z",
+    "id": "rec_e7682d08af4974bf19deb959",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-13",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Sodium [Moles/volume] in Serum or Plasma",
+    "value": "141",
+    "unit": "mmol/L",
+    "status": "final",
+    "date": "2026-01-20T08:30:00Z",
+    "id": "rec_afbde85de13b2299b503bcbf",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-14",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Urea nitrogen [Mass/volume] in Serum or Plasma",
+    "value": "26",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-01-20T08:30:00Z",
+    "id": "rec_f7b4b1dbcf95170a33dc59d3",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-15",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Creatinine [Mass/volume] in Serum or Plasma",
+    "value": "1.7",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-07-14T08:30:00Z",
+    "id": "rec_e7e89867006c1e19b1c0bf05",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-16",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI 2021)/1.73 sq M",
+    "value": "31",
+    "unit": "mL/min/{1.73_m2}",
+    "status": "final",
+    "date": "2026-07-14T08:30:00Z",
+    "id": "rec_16466ab88b4d43771410923e",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-17",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Potassium [Moles/volume] in Serum or Plasma",
+    "value": "4.9",
+    "unit": "mmol/L",
+    "status": "final",
+    "date": "2026-07-14T08:30:00Z",
+    "id": "rec_b14cb69d950a75c58a4eb830",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-18",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Sodium [Moles/volume] in Serum or Plasma",
+    "value": "136",
+    "unit": "mmol/L",
+    "status": "final",
+    "date": "2026-07-14T08:30:00Z",
+    "id": "rec_a2f6ebb44b2172c5b8504f97",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-19",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Urea nitrogen [Mass/volume] in Serum or Plasma",
+    "value": "31",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-07-14T08:30:00Z",
+    "id": "rec_e59f457aa12b18129358b4bd",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-20",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Hemoglobin A1c/Hemoglobin.total in Blood",
+    "value": "7.1",
+    "unit": "%",
+    "status": "final",
+    "date": "2025-01-14T08:30:00Z",
+    "id": "rec_2f4d8f752ddd13dadc0694d0",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-21",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Hemoglobin A1c/Hemoglobin.total in Blood",
+    "value": "7.4",
+    "unit": "%",
+    "status": "final",
+    "date": "2025-07-15T08:30:00Z",
+    "id": "rec_0ff3562380a44b375ffc0b56",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-22",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Hemoglobin A1c/Hemoglobin.total in Blood",
+    "value": "6.9",
+    "unit": "%",
+    "status": "final",
+    "date": "2026-01-20T08:30:00Z",
+    "id": "rec_57589e8bb4bd9740c4daf912",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-23",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Hemoglobin A1c/Hemoglobin.total in Blood",
+    "value": "6.8",
+    "unit": "%",
+    "status": "final",
+    "date": "2026-07-14T08:30:00Z",
+    "id": "rec_6f21e9bc9d64a694c22c63ea",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-24",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Cholesterol in LDL [Mass/volume] in Serum or Plasma by calculation",
+    "value": "98",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2025-01-14T08:30:00Z",
+    "id": "rec_8a61d5c8d0939cf5db5d3437",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-25",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Cholesterol in HDL [Mass/volume] in Serum or Plasma",
+    "value": "48",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2025-01-14T08:30:00Z",
+    "id": "rec_cc2f3d25377840b2ef8649f4",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-26",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Cholesterol [Mass/volume] in Serum or Plasma",
+    "value": "178",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2025-01-14T08:30:00Z",
+    "id": "rec_4a34b8d5548d7f5c250caece",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-27",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Triglyceride [Mass/volume] in Serum or Plasma",
+    "value": "160",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2025-01-14T08:30:00Z",
+    "id": "rec_632a42e3218f2358f38eb645",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-28",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Cholesterol in LDL [Mass/volume] in Serum or Plasma by calculation",
+    "value": "85",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-01-20T08:30:00Z",
+    "id": "rec_54093577def5dbf599255bef",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-29",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Cholesterol in HDL [Mass/volume] in Serum or Plasma",
+    "value": "51",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-01-20T08:30:00Z",
+    "id": "rec_5894b13d943ee561418a7271",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-30",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Cholesterol [Mass/volume] in Serum or Plasma",
+    "value": "165",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-01-20T08:30:00Z",
+    "id": "rec_fc5887f30f8f15f872652da8",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-31",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Triglyceride [Mass/volume] in Serum or Plasma",
+    "value": "145",
+    "unit": "mg/dL",
+    "status": "final",
+    "date": "2026-01-20T08:30:00Z",
+    "id": "rec_f114ae78dec4dc67a114e0bf",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-32",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Thyrotropin [Units/volume] in Serum or Plasma",
+    "value": "2.2",
+    "unit": "m[IU]/L",
+    "status": "final",
+    "date": "2025-01-14T08:30:00Z",
+    "id": "rec_cdf5e0f1c59bac9fc28f97e7",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-33",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Thyrotropin [Units/volume] in Serum or Plasma",
+    "value": "3.9",
+    "unit": "m[IU]/L",
+    "status": "final",
+    "date": "2026-01-20T08:30:00Z",
+    "id": "rec_d7187962c23560d6c311c752",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-34",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Hemoglobin [Mass/volume] in Blood",
+    "value": "11.8",
+    "unit": "g/dL",
+    "status": "final",
+    "date": "2025-07-15T08:30:00Z",
+    "id": "rec_9155c6f7223f1f5e51b51682",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-35",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Leukocytes [#/volume] in Blood by Automated count",
+    "value": "6.8",
+    "unit": "10*3/uL",
+    "status": "final",
+    "date": "2025-07-15T08:30:00Z",
+    "id": "rec_d16229a83c1750b55af2af22",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-36",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Platelets [#/volume] in Blood by Automated count",
+    "value": "212",
+    "unit": "10*3/uL",
+    "status": "final",
+    "date": "2025-07-15T08:30:00Z",
+    "id": "rec_75bf4f32cef96b2426b7a71d",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-37",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Hemoglobin [Mass/volume] in Blood",
+    "value": "11.4",
+    "unit": "g/dL",
+    "status": "final",
+    "date": "2026-07-14T08:30:00Z",
+    "id": "rec_a14a132d690cfdaec0706c02",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-38",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Leukocytes [#/volume] in Blood by Automated count",
+    "value": "7.1",
+    "unit": "10*3/uL",
+    "status": "final",
+    "date": "2026-07-14T08:30:00Z",
+    "id": "rec_a13767753e62b0a085d0a3c9",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-39",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Platelets [#/volume] in Blood by Automated count",
+    "value": "198",
+    "unit": "10*3/uL",
+    "status": "final",
+    "date": "2026-07-14T08:30:00Z",
+    "id": "rec_788ef21bc9248333032e5fd3",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-lab-40",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "medications": [
+   {
+    "name": "apixaban 5 MG Oral Tablet",
+    "status": "active",
+    "startDate": "2025-08-19",
+    "id": "rec_e07a8bad813560cf044a1396",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "24 HR metoprolol succinate 50 MG Extended Release Oral Tablet",
+    "status": "active",
+    "startDate": "2025-08-19",
+    "id": "rec_b526738dcbd737b97537a122",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "furosemide 40 MG Oral Tablet",
+    "status": "active",
+    "startDate": "2025-08-19",
+    "id": "rec_6a624df5d76eb54b3080f9b2",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "lisinopril 10 MG Oral Tablet",
+    "status": "active",
+    "startDate": "2025-10-14",
+    "id": "rec_a57752e734a0566aae38d893",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-4",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "atorvastatin 40 MG Oral Tablet",
+    "status": "active",
+    "startDate": "2025-10-14",
+    "id": "rec_05e54e90e0efa6946c66ae0f",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-5",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "metformin hydrochloride 500 MG Oral Tablet",
+    "status": "active",
+    "startDate": "2025-10-14",
+    "id": "rec_4d30718ae755e5f82b2745af",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-6",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "levothyroxine sodium 0.075 MG Oral Tablet",
+    "status": "active",
+    "startDate": "2026-01-20",
+    "id": "rec_13e48f853df2754eb7a811b1",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-7",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "omeprazole 20 MG Delayed Release Oral Capsule",
+    "status": "active",
+    "startDate": "2025-10-14",
+    "id": "rec_4aaf63663b608b484f24c8bb",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-8",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "acetaminophen 500 MG Oral Tablet",
+    "status": "active",
+    "startDate": "2025-10-14",
+    "id": "rec_182c9095d95472c0045134cf",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-9",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "sertraline 50 MG Oral Tablet",
+    "status": "active",
+    "startDate": "2026-01-20",
+    "id": "rec_9a91596c2ecd8d63c80fa431",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-10",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "trazodone hydrochloride 50 MG Oral Tablet",
+    "status": "active",
+    "startDate": "2026-01-20",
+    "id": "rec_bb5d91fa8b3d82bfa66c2515",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-11",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "potassium chloride 20 MEQ Extended Release Oral Tablet",
+    "status": "active",
+    "startDate": "2025-08-19",
+    "id": "rec_818d3c181c312d67b483fb86",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-12",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "cholecalciferol 0.025 MG Oral Tablet",
+    "status": "active",
+    "startDate": "2025-10-14",
+    "id": "rec_fb13f45d1df5c1e7952900aa",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-13",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "aspirin 81 MG Oral Tablet",
+    "status": "active",
+    "startDate": "2025-10-14",
+    "id": "rec_856422382f29407aedf22257",
+    "sourceRecordId": "MedicationRequest/polypharmacy-senior-demo-medication-14",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "medicationAdministrations": [],
+  "vitals": [
+   {
+    "name": "Blood pressure panel with all children optional",
+    "value": "Systolic blood pressure: 134, Diastolic blood pressure: 74",
+    "unit": "mm[Hg]",
+    "status": "final",
+    "date": "2024-03-05T14:05:00Z",
+    "id": "rec_e08018451449dff57ce6bcb0",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-1",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "71",
+    "unit": "/min",
+    "status": "final",
+    "date": "2024-03-05T14:05:00Z",
+    "id": "rec_510ca021cc10456689ef5927",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-2",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "69.6",
+    "unit": "kg",
+    "status": "final",
+    "date": "2024-03-05T14:05:00Z",
+    "id": "rec_be328d0dad7103d6bd5b386a",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-3",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Blood pressure panel with all children optional",
+    "value": "Systolic blood pressure: 135, Diastolic blood pressure: 77",
+    "unit": "mm[Hg]",
+    "status": "final",
+    "date": "2024-06-04T14:05:00Z",
+    "id": "rec_ee4c6ee3ce50bf451edb81f2",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-4",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "77",
+    "unit": "/min",
+    "status": "final",
+    "date": "2024-06-04T14:05:00Z",
+    "id": "rec_2ed65bad1533a88190537d77",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-5",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "71.6",
+    "unit": "kg",
+    "status": "final",
+    "date": "2024-06-04T14:05:00Z",
+    "id": "rec_04bf79e89223167c5352c1e4",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-6",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Blood pressure panel with all children optional",
+    "value": "Systolic blood pressure: 136, Diastolic blood pressure: 71",
+    "unit": "mm[Hg]",
+    "status": "final",
+    "date": "2024-09-10T14:05:00Z",
+    "id": "rec_2d7a5892fd3d424ef718c0da",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-7",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "84",
+    "unit": "/min",
+    "status": "final",
+    "date": "2024-09-10T14:05:00Z",
+    "id": "rec_a0c6b5d4adf2552b61226aaf",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-8",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "70.6",
+    "unit": "kg",
+    "status": "final",
+    "date": "2024-09-10T14:05:00Z",
+    "id": "rec_06a1bc5a5981747511ebfd3f",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-9",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Blood pressure panel with all children optional",
+    "value": "Systolic blood pressure: 130, Diastolic blood pressure: 72",
+    "unit": "mm[Hg]",
+    "status": "final",
+    "date": "2024-12-03T14:05:00Z",
+    "id": "rec_001e15d1ca96e264f13e9d67",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-10",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "68",
+    "unit": "/min",
+    "status": "final",
+    "date": "2024-12-03T14:05:00Z",
+    "id": "rec_d7bb46c9b1c5247692418656",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-11",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "69.2",
+    "unit": "kg",
+    "status": "final",
+    "date": "2024-12-03T14:05:00Z",
+    "id": "rec_31240220fe77001e4c716fda",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-12",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Blood pressure panel with all children optional",
+    "value": "Systolic blood pressure: 145, Diastolic blood pressure: 77",
+    "unit": "mm[Hg]",
+    "status": "final",
+    "date": "2025-02-11T14:05:00Z",
+    "id": "rec_82042a7c73fdd5373a7dfc21",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-13",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "65",
+    "unit": "/min",
+    "status": "final",
+    "date": "2025-02-11T14:05:00Z",
+    "id": "rec_3dcaa6a006146d8c79ceb0db",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-14",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "72.6",
+    "unit": "kg",
+    "status": "final",
+    "date": "2025-02-11T14:05:00Z",
+    "id": "rec_38a0f5ac55d45433f0b6d551",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-15",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Blood pressure panel with all children optional",
+    "value": "Systolic blood pressure: 148, Diastolic blood pressure: 81",
+    "unit": "mm[Hg]",
+    "status": "final",
+    "date": "2025-03-11T14:05:00Z",
+    "id": "rec_abaff3916844139a933f3d63",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-16",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "74",
+    "unit": "/min",
+    "status": "final",
+    "date": "2025-03-11T14:05:00Z",
+    "id": "rec_e36179660414fabc94014697",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-17",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "68.6",
+    "unit": "kg",
+    "status": "final",
+    "date": "2025-03-11T14:05:00Z",
+    "id": "rec_9e99c4195a421c435a59e592",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-18",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Blood pressure panel with all children optional",
+    "value": "Systolic blood pressure: 130, Diastolic blood pressure: 79",
+    "unit": "mm[Hg]",
+    "status": "final",
+    "date": "2025-06-17T14:05:00Z",
+    "id": "rec_3c9621ced0d49a462e34f259",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-19",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "91",
+    "unit": "/min",
+    "status": "final",
+    "date": "2025-06-17T14:05:00Z",
+    "id": "rec_eaeedc3546c18aae64e12db0",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-20",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "70.5",
+    "unit": "kg",
+    "status": "final",
+    "date": "2025-06-17T14:05:00Z",
+    "id": "rec_73a441a525c55a3f7c574367",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-21",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Blood pressure panel with all children optional",
+    "value": "Systolic blood pressure: 145, Diastolic blood pressure: 81",
+    "unit": "mm[Hg]",
+    "status": "final",
+    "date": "2025-08-19T14:05:00Z",
+    "id": "rec_45d0f4a5c3d36d20775871c4",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-22",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "79",
+    "unit": "/min",
+    "status": "final",
+    "date": "2025-08-19T14:05:00Z",
+    "id": "rec_0e4e6b8700b30b454747d53b",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-23",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "71",
+    "unit": "kg",
+    "status": "final",
+    "date": "2025-08-19T14:05:00Z",
+    "id": "rec_57166eb9734984d9f65abef1",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-24",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Blood pressure panel with all children optional",
+    "value": "Systolic blood pressure: 130, Diastolic blood pressure: 81",
+    "unit": "mm[Hg]",
+    "status": "final",
+    "date": "2025-10-14T14:05:00Z",
+    "id": "rec_e4a9be49d9ea2332fcf9f347",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-25",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "67",
+    "unit": "/min",
+    "status": "final",
+    "date": "2025-10-14T14:05:00Z",
+    "id": "rec_ce52f63f5283e95421a5d89d",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-26",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "72.1",
+    "unit": "kg",
+    "status": "final",
+    "date": "2025-10-14T14:05:00Z",
+    "id": "rec_101babe487e70667e666a6e1",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-27",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Blood pressure panel with all children optional",
+    "value": "Systolic blood pressure: 133, Diastolic blood pressure: 75",
+    "unit": "mm[Hg]",
+    "status": "final",
+    "date": "2026-01-20T14:05:00Z",
+    "id": "rec_f7dec765b5c76277291db607",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-28",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Heart rate",
+    "value": "73",
+    "unit": "/min",
+    "status": "final",
+    "date": "2026-01-20T14:05:00Z",
+    "id": "rec_1df260f600e06aa6f8820a4f",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-29",
+    "sourceName": "Northstar Health System (Synthetic)"
+   },
+   {
+    "name": "Body weight",
+    "value": "70.5",
+    "unit": "kg",
+    "status": "final",
+    "date": "2026-01-20T14:05:00Z",
+    "id": "rec_d34bb1907ee53370863beb3e",
+    "sourceRecordId": "Observation/polypharmacy-senior-demo-vital-30",
+    "sourceName": "Northstar Health System (Synthetic)"
+   }
+  ],
+  "documents": []
+ }
+}

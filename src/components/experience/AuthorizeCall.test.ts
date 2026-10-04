@@ -17,7 +17,7 @@ describe("hospital call authorization panel", () => {
   });
   it("names the patient and hospital, warns it is a real call, and keeps the button disabled until the plan is ready", () => {
     const html = render({});
-    expect(html).toContain("Maya Ortiz");
+    expect(html).toContain("Morgan Rivera");
     expect(html).toContain(paused.provider.name);
     expect(html).toContain("places a real phone call");
     expect(html).toMatch(/<button[^>]*disabled[^>]*>.*Authorize hospital call/s);

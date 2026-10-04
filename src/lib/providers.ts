@@ -1,6 +1,6 @@
 import { MockBankProvider } from "../services/banking/mock";
 import { NessieBankProvider } from "../services/banking/nessie";
-import { ScenarioFinchNodeProvider } from "../services/medical/scenario-finchnode";
+import { DemoMedicalProvider } from "../services/medical/finchnode-demo";
 import { FinchNodeProvider } from "../services/medical/finchnode";
 import { seededNessieAccount } from "./nessie-seed";
 import { FishDemoCommunicationProvider } from "../services/communications/fish-demo";
@@ -17,7 +17,7 @@ export const bankProvider = (scenarioId?: string) => {
   if (!seeded) throw new Error(`Scenario ${scenarioId} has not been seeded into the Nessie sandbox; run scripts/nessie-seed.mjs`);
   return new NessieBankProvider([seeded]);
 };
-export const medicalProvider = () => demoMode() ? new ScenarioFinchNodeProvider() : new FinchNodeProvider();
+export const medicalProvider = () => demoMode() ? new DemoMedicalProvider() : new FinchNodeProvider();
 export const communicationProvider = () => {
   if (!demoMode()) throw new Error("A Relay or Photon adapter must be configured before live provider contact");
   const billDelayMs = process.env.DEMO_BILL_DELIVERY === "manual" ? Number.POSITIVE_INFINITY : 750;

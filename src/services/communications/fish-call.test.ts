@@ -18,7 +18,7 @@ describe("fish config", () => {
 describe("dynamic variables", () => {
   const config = { guardianLine: "+15555550142" };
   it.each(scenarios)("are valid Fish variables for $id", (scenario) => {
-    const vars = buildDynamicVariables(scenario.hospital.name, config);
+    const vars = buildDynamicVariables(scenario.hospital.name, config, scenario.id);
     expect(Object.keys(vars).length).toBeLessThanOrEqual(50);
     for (const [name, value] of Object.entries(vars)) {
       expect(name).toMatch(/^[A-Za-z][A-Za-z0-9_]*$/);
@@ -34,9 +34,16 @@ describe("dynamic variables", () => {
     expect(spokenDate("2026-09-02")).toBe("September 2nd");
     expect(spokenDate("2026-09-13")).toBe("September 13th");
     expect(spokenDate("2026-09-23")).toBe("September 23rd");
-    expect(spokenNumber("+14156057073")).toBe("+1; 4 1 5; 6 0 5; 7 0 7 3");
+    expect(spokenNumber("+15555550100")).toBe("+1; 5 5 5; 5 5 5; 0 1 0 0");
   });
   it("rejects an unknown hospital", () => {
     expect(() => buildDynamicVariables("Nowhere Clinic", config)).toThrow();
+  });
+  it("will not guess a patient from the hospital name when several patients share it", () => {
+    expect(() => buildDynamicVariables("Northstar Health System", config)).toThrow(/which patient/);
+    expect(() => buildDynamicVariables("Northstar Health System", config, "no-such-scenario")).toThrow();
+  });
+  it("speaks the service date the bill is for, not a guess", () => {
+    expect(buildDynamicVariables("Northstar Health System", config, "harriet-kidney")).toMatchObject({ payment_date: "January 20th", service_date: "January 20th" });
   });
 });

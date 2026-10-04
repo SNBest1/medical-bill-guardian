@@ -5,7 +5,7 @@ import { openScenarioCase, ScenarioOpenError } from "@/services/agent/open-scena
 import { getScenario } from "@/services/scenarios";
 
 export const runtime = "nodejs";
-/** Records the judge's accident choice and opens (or resumes) that patient's case. Investigation
+/** Records the judge's patient choice and opens (or resumes) that patient's case. Investigation
  * is a separate step that needs the patient's authorization. */
 export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
   if (!demoMode()) return NextResponse.json({ error: "Scenario selection is available only in demo mode" }, { status: 403 });

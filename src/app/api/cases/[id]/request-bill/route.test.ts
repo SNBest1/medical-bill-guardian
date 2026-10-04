@@ -117,7 +117,7 @@ describe("GET /api/cases/[id]/request-bill", () => {
     const text = await (await GET(new Request("http://localhost"), context(paused.id))).text();
     const body = JSON.parse(text);
     expect(body).toMatchObject({ fish: true, ready: true, problems: [], destination: "ending 0100", guardianLine: "ending 0142" });
-    expect(body.brief.join(" ")).toContain("Maya Ortiz");
+    expect(body.brief.join(" ")).toContain("Morgan Rivera");
     for (const leak of ["fish-secret", "+15555550100", "+15555550142", "agent-1"]) expect(text).not.toContain(leak);
   });
 });

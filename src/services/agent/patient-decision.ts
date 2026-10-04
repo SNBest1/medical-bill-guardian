@@ -27,7 +27,7 @@ export async function handlePatientDecision(store: CaseStore, text: string, comm
   const cases = store.list();
   if (intent.kind === "status") {
     const active = cases.filter((c) => c.status !== "USER_NOTIFIED" && c.status !== "FAILED").sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0] ?? cases.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
-    if (!active) return { kind: "nothing-pending", text: "I'm not working on any bills yet. Text me something like \"look into Maya's bill\" to start." };
+    if (!active) return { kind: "nothing-pending", text: "I'm not working on any bills yet. Text me something like \"look into Morgan's bill\" to start." };
     return { kind: "status", text: currentMilestone(active)?.text ?? `Update on your ${active.provider.name} bill: I'm working on it now (${active.status.toLowerCase().replaceAll("_", " ")}). I'll text you at the next step.` };
   }
   const waiting = cases.filter(awaitingDecision);
