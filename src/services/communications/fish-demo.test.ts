@@ -56,7 +56,8 @@ describe("FishDemoCommunicationProvider", () => {
     const fetcher = ok();
     await new FishDemoCommunicationProvider(config, fetcher).requestItemizedBill({ ...ctx, providerName: "Summit Trauma Hospital" });
     const vars = JSON.parse(String(fetcher.mock.calls[0][1]?.body)).dynamic_variables;
-    expect(vars).toMatchObject({ patient_name: "Daniel" + " " + vars.patient_name.split(" ")[1], hospital_name: "Summit Trauma Hospital", payment_amount: "6,760 dollars", payment_date: "September 21st" });
+    expect(vars.patient_name).toMatch(/^Daniel /);
+    expect(vars).toMatchObject({ hospital_name: "Summit Trauma Hospital", payment_amount: "6,760 dollars", payment_date: "September 21st" });
   });
 
   it("scopes the idempotency key to run and destination without exposing digits", () => {

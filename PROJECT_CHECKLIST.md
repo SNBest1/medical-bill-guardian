@@ -40,6 +40,8 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 - [ ] Keep the voice centerpiece synthetic and clearly disclose the simulated hospital representative; provide patient takeover or patient-upload fallback when a real hospital cannot accept agent authorization. Use authenticated secure uploads for real statements rather than unverified chat or SMS delivery.
 - [x] Obtain the Relay staging CLI/API documentation and identify its Agent Token, handles, messaging, calls, and webhook capabilities.
 - [x] Install the Relay CLI as an exact, project-local dependency and create the staging `medical_bill_guardian` agent without committing its token.
+- [x] Fish Audio outbound call behind an explicit authorization step (destination locked to `FISH_TEST_TO_NUMBER` = `DEMO_HOSPITAL_PHONE`, per-call dynamic variables, idempotency key); unit-tested with a fake fetch.
+- [ ] Run one live Fish call end to end (publish the agent from `docs/FISH_AGENT_PROMPT.md`, set the four `FISH_*` values, authorize on the case page, text the PDF link back); no live Fish request has been made yet.
 - [ ] Implement and test a Relay `CommunicationProvider` for a participating provider handle, and handle asynchronous billing responses. The documented call feature reaches a Relay chat participant; ordinary hospital phone dialing is not established.
 - [x] Validate Nessie sandbox credentials and create one synthetic customer, checking account, University Hospital merchant, and $4,820 purchase. Confirm the account/purchase/merchant read path used by the adapter; IDs stay in the ignored `.env`.
 - [ ] Connect the synthetic Nessie purchase to a case through a protected, authenticated live workflow; the current app deliberately blocks live case routes.
