@@ -83,3 +83,9 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 - [x] Import 1,080 published cash/negotiated snapshot rows for four selected codes, with provenance and methodology; expose a reference catalog without assigning these to fictional services or assuming current contract validity.
 - [ ] Validate actual service codes, billing units/modifiers, provider identity, setting/component, payer/plan, and date applicability before converting public snapshot rows into exact comparison references.
 - [ ] Complete revised-EOB intake and bank-credit allocation tracking for an insured refund; noncovered services, balance billing, financial assistance, bundles, and special benefit rules still require review.
+
+## Text-to-agent command
+
+- [x] Accept a patient iMessage command only from `DEMO_PATIENT_PHONE` (DM, iMessage, plain text, 500 characters or fewer), reusing the web command resolver through a shared `runAgentCommand` service; dedupe by message ID in SQLite; record `PHOTON_COMMAND` in the audit log without the phone number.
+- [x] Optional one-time fixed reply to the patient phone behind `PHOTON_REPLY_TEXTS` (off by default), through the Photon outbox idempotency.
+- [ ] Exercise the patient-command path and reply against live Spectrum (unit-tested with fakes only).

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/db";
 import { authorizedWorker } from "@/services/agent/worker-auth";
+import { parseLocalPatientMessage } from "@/services/communications/photon-command";
+import { handlePatientCommand } from "@/services/agent/patient-command";
+import { bankProvider, communicationProvider, medicalProvider } from "@/lib/providers";
 import { parseLocalPhotonMessage, type LocalPhotonMessage, type LocalPhotonSpace } from "@/services/communications/photon-receiver";
 
 export const runtime = "nodejs";
@@ -24,7 +27,12 @@ export async function POST(request: Request) {
   try {
     const body = JSON.parse(raw) as { space?: LocalPhotonSpace; message?: LocalPhotonMessage };
     const entry = parseLocalPhotonMessage(body.space ?? {}, body.message ?? ({} as LocalPhotonMessage), process.env.DEMO_HOSPITAL_PHONE ?? "");
-    if (!entry) return NextResponse.json({ accepted: false, ignored: true });
+    if (!entry) {
+      const command = parseLocalPatientMessage(body.space ?? {}, body.message ?? ({} as LocalPhotonMessage), process.env.DEMO_PATIENT_PHONE ?? "");
+      if (!command) return NextResponse.json({ accepted: false, ignored: true });
+      const result = await handlePatientCommand(getStore(), command, { bank: bankProvider, medical: medicalProvider(), communications: communicationProvider() }, { replyEnabled: process.env.PHOTON_REPLY_TEXTS === "true", patientPhone: process.env.DEMO_PATIENT_PHONE ?? "" });
+      return NextResponse.json({ accepted: true, command: result.kind, ...(result.kind === "duplicate" ? { duplicate: true } : { reply: result.reply }) }, { status: 202 });
+    }
     const inserted = getStore().enqueueStatement(entry);
     return NextResponse.json({ accepted: true, duplicate: !inserted }, { status: 202 });
   } catch { return NextResponse.json({ error: "Invalid local statement delivery" }, { status: 400 }); }

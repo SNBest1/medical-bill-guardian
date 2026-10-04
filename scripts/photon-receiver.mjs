@@ -3,8 +3,9 @@ try { loadEnvFile(".env.local"); } catch {}
 try { loadEnvFile(".env"); } catch {}
 
 // Alternative to registering a public webhook: holds a live Spectrum connection and forwards
-// each inbound hospital DM to the local app's durable statement inbox over loopback. Never sends
-// anything — it is a receiver only. Requires the operator's own explicit rehearsal authorization
+// each inbound hospital DM (statement) and patient DM (command) to the local app over loopback. The
+// app, not this process, applies the sender policy and sends the optional reply (PHOTON_REPLY_TEXTS).
+// This process never sends anything — it is a receiver only. Requires the operator's own explicit rehearsal authorization
 // before running against real Spectrum Cloud credentials.
 
 const base = process.env.GUARDIAN_LOCAL_URL || "http://127.0.0.1:3000";
@@ -17,6 +18,7 @@ const projectId = process.env.SPECTRUM_PROJECT_ID;
 const projectSecret = process.env.SPECTRUM_PROJECT_SECRET;
 if (!projectId || !projectSecret) throw new Error("Configure SPECTRUM_PROJECT_ID / SPECTRUM_PROJECT_SECRET");
 if (!process.env.DEMO_HOSPITAL_PHONE) throw new Error("Configure DEMO_HOSPITAL_PHONE");
+if (!process.env.DEMO_PATIENT_PHONE) console.warn("DEMO_PATIENT_PHONE is not set; patient commands will be ignored");
 
 console.log("Guardian Photon receiver: holding a live Spectrum connection as a webhook alternative. Receive-only; nothing is ever sent from this process.");
 
