@@ -65,9 +65,9 @@ A new explicit orchestrator operation will request the itemized bill. It will re
 - case status `REQUESTING_BILL`; and
 - no existing `ITEMIZED_BILL_REQUEST` communication.
 
-The corresponding `POST /api/cases/[id]/request-bill` route will invoke that operation and persist the returned case. Repeat submissions are protected at three layers: UI busy state, case-state validation, and the Fish idempotency key derived from the case ID and action name.
+The corresponding `POST /api/cases/[id]/request-bill` route will invoke that operation and persist the returned case. Repeat submissions are protected at three layers: UI busy state, case-state validation, and the Fish idempotency key derived from the case ID, action name, and destination fingerprint.
 
-The idempotency key will not include timestamps. If Fish accepted a request but the local response was interrupted, retrying the same case action must refer to the original Fish operation rather than place another call.
+The idempotency key will not include timestamps. It will combine the case ID, action name, and a short SHA-256 fingerprint of the normalized destination number. If Fish accepted a request but the local response was interrupted, retrying the same case action against the same destination must refer to the original Fish operation rather than place another call. Changing `FISH_TEST_TO_NUMBER` changes the fingerprint and creates a distinct authorized call attempt without exposing the destination in headers or logs.
 
 ## Interface
 
@@ -118,6 +118,7 @@ Unit tests will cover:
 - rejection in the wrong state or after a request already exists;
 - successful transition to `WAITING_FOR_BILL` with the session reference recorded;
 - Fish request headers, body, and stable idempotency key using a mocked `fetch`;
+- identical destinations producing identical idempotency keys while different destinations produce different keys;
 - configuration validation and E.164 validation;
 - propagation and redaction of non-`201` Fish errors;
 - provider selection with and without all Fish variables; and
