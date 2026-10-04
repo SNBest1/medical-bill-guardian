@@ -37,7 +37,7 @@ export async function investigateCase(current: MedicalBillCase, medical: Medical
   if (encounter) record(next, "MATCH_ENCOUNTER", "matchEncounter", next.transaction.merchant, encounter.id, "Medical encounter located", `${encounter.description} · ${encounter.date}`, "Medical record");
   next.status = "REQUESTING_BILL";
   let request;
-  try { request = await communications.requestItemizedBill(next.provider.name); }
+  try { request = await communications.requestItemizedBill({ caseId: next.id, attemptId: next.auditLog[0].id, providerName: next.provider.name }); }
   catch (error) { throw new ContactAmbiguousError(`Itemized bill request may or may not have reached the provider: ${error}`); }
   next.communications.push(request);
   record(next, "REQUEST_BILL", "requestItemizedBill", next.provider.name, "Bill request submitted", "Itemized bill requested", "Waiting for the provider's statement", "Hospital billing");

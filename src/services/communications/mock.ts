@@ -1,5 +1,5 @@
 import type { Communication, Finding, InsuranceContext, Resolution } from "../../types/domain";
-import type { CommunicationProvider } from "./provider";
+import type { CommunicationProvider, ItemizedBillRequestContext } from "./provider";
 import { billRequestTurns, billingReviewTurns } from "./demo-call";
 import { parseItemizedBill } from "./parse-bill";
 import { scenarioForProvider } from "../scenarios";
@@ -16,7 +16,7 @@ export class MockCommunicationProvider implements CommunicationProvider {
   constructor(private readonly billDelayMs = 750) {}
 
   /** Records a pending request without contacting a hospital. */
-  async requestItemizedBill(providerName: string) {
+  async requestItemizedBill({ providerName }: ItemizedBillRequestContext) {
     return { ...communication("ITEMIZED_BILL_REQUEST", script(billRequestTurns(fixtureFor(providerName))), "Awaiting itemized statement"), status: "PENDING" as const };
   }
 
