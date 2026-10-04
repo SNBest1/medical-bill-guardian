@@ -4,19 +4,22 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && npm run typecheck:worker && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "typecheck:worker": "tsc --noEmit -p worker/tsconfig.json",
     "smoke": "bash scripts/smoke.sh",
     "spacetime:generate": "spacetime generate --lang typescript --out-dir src/module_bindings --module-path spacetimedb",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "lucide-react": "0.468.0",
+    "postal-mime": "4.0.4",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "spacetimedb": "2.10.2"
+    "spacetimedb": "2.10.2",
+    "unpdf": "1.8.1"
   },
   "devDependencies": {
     "@types/node": "22.18.6",

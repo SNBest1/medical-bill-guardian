@@ -1,0 +1,6 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "types": ["vite/client", "node"] },
+  "include": ["./**/*.ts", "../spacetimedb/src/logic/**/*.ts", "../src/integrations/**/*.ts"],
+  "exclude": ["./**/*.test.ts", "../node_modules", "../spacetimedb/node_modules"]
+}

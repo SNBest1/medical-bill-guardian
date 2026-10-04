@@ -1,10 +1,20 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "medical-bill-guardian",
+  "addresses": ["ai@nipunsaini.com"],
+  "main": "worker/index.ts",
   "compatibility_date": "2026-10-03",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
     "not_found_handling": "single-page-application"
   },
+  "vars": {
+    "EMAIL_SEND_ENABLED": "false",
+    "RESEND_FROM_EMAIL": "billing@nipunsaini.com",
+    "PROVIDER_REPLY_EMAIL": "nipun.saini9@gmail.com"
+  },
+  "triggers": { "crons": ["* * * * *"] },
   "observability": { "enabled": true }
 }
