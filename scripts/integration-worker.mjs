@@ -15,7 +15,7 @@ while (running) {
   try {
     const response = await fetch(new URL("/api/integrations/tick", url), { method: "POST", headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10000) });
     const body = await response.json().catch(() => ({}));
-    console.log(JSON.stringify({ status: response.status, detected: body.detected, inbox: body.inbox }));
+    console.log(JSON.stringify({ status: response.status, detected: body.detected, inbox: body.inbox, updates: body.updates, background: body.background }));
   } catch { console.error("Worker tick failed; retrying without dropping queued statements"); }
   if (running) await new Promise((resolve) => setTimeout(resolve, 15000));
 }

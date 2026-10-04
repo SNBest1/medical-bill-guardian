@@ -57,5 +57,17 @@ export async function sendPhotonText(phone: string, text: string, connect: (proj
   } catch (error) {
     if (error instanceof PhotonSendUncertainError) throw error;
     throw new PhotonSendUncertainError(error instanceof Error ? error.message : String(error));
-  } finally { await connection.stop(); }
+  } finally {
+    // Cleanup cannot turn an accepted or uncertain send into a retryable failure.
+    try { await connection.stop(); } catch { console.error("Photon connection cleanup failed"); }
+  }
+}
+
+/** Keep provider diagnostics useful without retaining credentials or routing identifiers. */
+export function safePhotonError(error: unknown): string {
+  let message = error instanceof Error ? error.message : "Unknown text failure";
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value && /SECRET|TOKEN|KEY|PHONE|LINE|USER_ID|PROJECT_ID/.test(key)) message = message.split(value).join("[redacted]");
+  }
+  return message.replace(/\+\d{8,15}/g, "[phone]").slice(0, 500);
 }

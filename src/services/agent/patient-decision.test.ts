@@ -15,6 +15,7 @@ const saved = ["PHOTON_UPDATE_TEXTS", "DEMO_MODE"].map((k) => [k, process.env[k]
 
 describe("patient reply intents", () => {
   it("recognises short approvals, declines and status only", () => {
+    for (const text of ["I’m done", "im done", "exit", "leave this investigation"]) expect(classifyPatientReply(text)).toEqual({ kind: "leave" });
     expect(classifyPatientReply("Yes!")).toEqual({ kind: "approve" });
     expect(classifyPatientReply("go ahead")).toEqual({ kind: "approve" });
     expect(classifyPatientReply("yes for Morgan")).toEqual({ kind: "approve", name: "morgan" });
@@ -30,6 +31,20 @@ describe("patient decisions by text", () => {
   afterEach(() => { for (const [k, v] of saved) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } });
   const start = (name: string) => runAgentCommand(store, { text: name }, providers());
 
+  it("lets the patient leave during ongoing work and choose another bill", async () => {
+    const started = await start("Morgan");
+    if (started.kind !== "started") throw new Error("Expected Morgan");
+    store.save({ ...started.case, status: "WAITING_FOR_PROVIDER" });
+    const outcome = await handlePatientDecision(store, "I'm done", comms());
+    expect(outcome?.kind).toBe("declined");
+    expect(store.activeCase()).toBeNull();
+    expect(store.get(started.case.id)?.status).toBe("WAITING_FOR_PROVIDER");
+    expect(store.selectPatient("harriet-kidney")).toBe(true);
+    // A stale page's exit must not deselect the newly selected patient.
+    store.leaveCase(started.case.id);
+    expect(store.selectPatient("theo-asthma")).toBe(false);
+  });
+
   it("does nothing for an approval when no step is waiting", async () => {
     expect((await handlePatientDecision(store, "yes", comms()))?.kind).toBe("nothing-pending");
     expect(await handlePatientDecision(store, "investigate Morgan", comms())).toBeNull();
@@ -43,6 +58,31 @@ describe("patient decisions by text", () => {
     expect(first?.kind).toBe("approved");
     expect(store.list()[0].status).toBe("WAITING_FOR_BILL");
     expect((await handlePatientDecision(store, "yes", real))?.kind).toBe("nothing-pending");
+  });
+  it("offers and credits a pending refund through text exactly once", async () => {
+    const started = await start("Morgan");
+    if (started.kind !== "started") throw new Error("Expected Morgan");
+    const c = { ...started.case, status: "USER_NOTIFIED" as const, resolution: { originalTotal: 1102, correctedTotal: 792, adjustment: 310, result: "DUPLICATE_REMOVED" as const, explanation: "Hospital corrected the charge" }, recovery: { status: "REFUND_PENDING" as const, amount: 310, confirmation: "demo", simulated: true } };
+    store.save(c);
+    expect((await handlePatientDecision(store, "status", comms()))?.text).toContain("Want me to send");
+    expect((await handlePatientDecision(store, "no", comms()))?.kind).toBe("declined");
+    expect(store.get(c.id)?.recovery?.status).toBe("REFUND_PENDING");
+    expect((await handlePatientDecision(store, "yes Harriet", comms()))?.kind).toBe("ambiguous");
+    const sent: string[] = [];
+    const options = { replyEnabled: true, patientPhone: patient, send: async (_p: string, text: string) => { sent.push(text); return "credit-message"; } };
+    expect(await handlePatientCommand(store, { messageId: "refund-yes", text: "send it" }, providers(), options)).toEqual({ kind: "approved", reply: "sent" });
+    expect(store.get(c.id)?.recovery?.status).toBe("REFUND_RECEIVED");
+    expect(sent[0]).toContain("$310");
+    expect(sent[0]).toContain("no real money moved");
+    expect(await handlePatientCommand(store, { messageId: "refund-yes", text: "send it" }, providers(), options)).toEqual({ kind: "duplicate" });
+    expect((await handlePatientDecision(store, "send it", comms()))?.text).toContain("already been recorded");
+  });
+  it("never treats a refund request as authorization to call the hospital", async () => {
+    const started = await start("Morgan");
+    if (started.kind !== "started") throw new Error("Expected Morgan");
+    store.save({ ...started.case, status: "REQUESTING_BILL", communications: [] });
+    expect((await handlePatientDecision(store, "send my money back now", comms()))?.kind).toBe("nothing-pending");
+    expect(store.get(started.case.id)?.status).toBe("REQUESTING_BILL");
   });
   it("NO leaves the case untouched and says nothing was sent", async () => {
     const started = await start("Morgan");

@@ -120,3 +120,29 @@ In the staged demo a person plays hospital billing on a voice call (prompts in [
 Safe fetch: only https (plain http to a loopback host only when `GUARDIAN_BILL_ALLOW_LOCALHOST=true` or under tests), the host must be listed in `GUARDIAN_BILL_HOSTS` (comma-separated, exact match; empty rejects everything), no credentials or unusual ports, at most 3 redirects and only within the same host, every resolved address checked at connect time against private/loopback/link-local ranges, 10 s timeout, 5 MB cap, and `application/pdf` or `%PDF-` content. Query strings are never logged. Texts that match zero or several waiting cases, fail the checks, or cannot be parsed change no case state: the case shows an error step and audit entry (or, with no case to attach to, the `bill_link_inbox` row records the outcome). Redelivered message IDs are ignored. The older exact-grammar statement text still works.
 
 Records for the three judge patients are read for real: at investigation time `FinchNodeDemoProvider` makes a keyless read-only GET to the FinchNode public demo API and the case page says "Records retrieved live from FinchNode public demo API (synthetic patient)" with the time, subject, and a count per category. If that call fails (8 s timeout, one retry) it uses the saved copy in `src/services/medical/fixtures/` and says "FinchNode unreachable - using the saved copy of this synthetic patient"; it never claims a live pull it did not make. The original University Hospital rehearsal case keeps its scenario adapter and its "no live FinchNode call" label. The public signed webhook route does not accept bill links (local receiver only). The hospital-link path has been exercised with unit tests, a local fake PDF server, and the case page in a browser, not against live Spectrum/iMessage.
+
+### Local text-demo processes
+
+Keep all three processes running in separate terminals from the repository root:
+
+```bash
+npm run dev
+node scripts/photon-receiver.mjs
+npm run worker
+```
+
+The receiver forwards approved patient and hospital messages; the worker drains queued statements and sends enabled progress updates every 15 seconds. Use the existing private worker token and explicit demo-text opt-ins. When record collection pauses for a call, the direct reply names the required approval (for example `YES Harriet`) even if progress updates are unavailable. This approval rings the configured demo hospital phone; investigating a patient alone does not approve that call.
+
+### Source labels and cost comparison
+
+The current case displays explicit source names for bank payments, FinchNode records (including saved-copy fallbacks), hospital PDF/text intake through Photon, and scripted or Fish Audio review responses. Each charge appears beside a verified contextual price when one exists, or “Not established” with missing context. Published CMS lab-payment benchmarks and Michigan Medicine cash-rate ranges are labeled separately and do not establish a patient’s owed amount or refund.
+
+`reference-data/cms-lab-benchmarks.json` contains 14 numeric rows for seven lab codes from the official CMS 2026 Q1 and Q3 ZIP files, with source URLs, CSV row numbers, SHA-256 hashes, retrieval date, and quarter applicability. Selection uses the bill's service date. Codes absent from these releases stay unpriced. The demo's billed charges remain fictional.
+
+### Hospital voice confirmation and patient text health
+
+The worker also reads already authorized live review calls and prepares resolved outcomes without requiring an open website; it never places a call. Patient progress texts are sent by the app at saved case transitions and retried by `npm run worker` if the send failed before provider acceptance. The website shows the current update's send state; Photon acceptance is not proof of delivery. Uncertain sends require inspection before resending. Connection cleanup errors cannot turn an accepted send into a retryable failure. Restart `npm run dev` after changing transport credentials or flags so the running sender uses the new configuration.
+
+The Fish hospital agent can converse and check whether the PDF arrived using the same active case as the website. Its read-only receipt webhook separates text arrival, PDF processing, successful reading, and failure; case and run IDs prevent stale calls confirming a previous bill. Run `npm run receipt-bridge` (loopback port 3211), expose that port through an HTTPS tunnel, set `FISH_RECEIPT_TOKEN` and `FISH_RECEIPT_URL` in the ignored environment, and run `node scripts/configure-fish-receipt.mjs`. That script attaches the tool and publishes the prompt in `docs/FISH_AGENT_PROMPT.md` without placing a call. The bridge serves only authenticated `/bill-receipt`; it does not expose the website or other APIs. A quick tunnel is temporary: keep it and the bridge running, and rerun the configuration script whenever its URL changes. Original Fish configuration is saved under ignored `data/` for rollback.
+
+When a synthetic refund is pending, the outcome text offers to send the demo credit. The approved patient can reply `YES Morgan` (or the current patient name), `YES`, or `SEND IT`; `NO` holds it. The same guarded `receiveDemoRefund` operation updates the website and sends the credit confirmation, without clicking the website button. Repeated messages cannot create another credit. This records a synthetic credit only, not a real bank transfer.

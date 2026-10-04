@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CaseStore } from "../../lib/db";
 import { MockBankProvider } from "../banking/mock";
 import { MockMedicalRecordProvider } from "../medical/mock";
 import { MockCommunicationProvider } from "../communications/mock";
 import { evaluatePatientCommand, parseLocalPatientMessage } from "../communications/photon-command";
 import { parseLocalPhotonMessage } from "../communications/photon-receiver";
-import { handlePatientCommand, type TextSender } from "./patient-command";
+import { handlePatientCommand, sendPendingPatientReplies, type TextSender } from "./patient-command";
 
 const patient = "+15555550100";
 const hospital = "+15555550123";
@@ -17,9 +17,12 @@ const command = (text: string, messageId = "m1") => ({ messageId, text });
 describe("patient command policy", () => {
   it("accepts a plain iMessage DM from the patient phone only", () => {
     expect(evaluatePatientCommand(base, patient)).toEqual({ messageId: "m1", text: "investigate Morgan's hospital bill" });
-    for (const change of [{ senderId: hospital }, { spaceType: "group" }, { messagePlatform: "sms" }, { spacePlatform: "telegram" }, { contentType: "attachment" }, { direction: "outbound" }, { contentText: "x".repeat(501) }, { contentText: "  " }, { messageId: "" }]) {
+    for (const change of [{ senderId: hospital }, { spaceType: "group" }, { messagePlatform: "sms" }, { spacePlatform: "telegram" }, { direction: "outbound" }, { messageId: "" }]) {
       expect(evaluatePatientCommand({ ...base, ...change }, patient)).toBeNull();
     }
+    expect(evaluatePatientCommand({ ...base, contentType: "attachment" }, patient)?.unsupported).toBe("unreadable");
+    expect(evaluatePatientCommand({ ...base, contentText: "x".repeat(501) }, patient)?.unsupported).toBe("too-long");
+    expect(evaluatePatientCommand({ ...base, contentText: "  " }, patient)?.unsupported).toBe("unreadable");
     expect(evaluatePatientCommand(base, "")).toBeNull();
     expect(evaluatePatientCommand(base, "not-a-phone")).toBeNull();
   });
@@ -82,7 +85,51 @@ describe("handlePatientCommand", () => {
     expect(sent[2].text).toContain("Morgan");
     expect(sent[2].text).not.toContain("ignore");
   });
-  it("a failed reply does not undo the investigation and is not retried on redelivery", async () => {
+  it("replies to every new repeated request even when the progress milestone was already accepted", async () => {
+    const store = new CaseStore(":memory:");
+    const { sent, send } = fakeSender();
+    const options = { replyEnabled: true, patientPhone: patient, send };
+    await handlePatientCommand(store, command("invesitgte Harriet", "first"), providers(), options);
+    const c = store.activeCase()!;
+    const key = `${c.id}:${c.auditLog[0]?.id ?? c.createdAt}:update:BILL_REQUESTED`;
+    store.beginText(key); store.finishText(key, "old-progress");
+    await handlePatientCommand(store, command("investigate Harriet", "second"), providers(), options);
+    expect(sent).toHaveLength(2);
+    expect(sent[1].text).toContain("Harriet");
+    expect(sent[1].text).toContain("waiting");
+  });
+  it("answers unsupported messages and provider errors without starting another action", async () => {
+    const store = new CaseStore(":memory:");
+    const { sent, send } = fakeSender();
+    const options = { replyEnabled: true, patientPhone: patient, send };
+    await handlePatientCommand(store, { ...command("", "attachment"), unsupported: "unreadable" }, providers(), options);
+    const broken = { ...providers(), bank: () => { throw new Error("private provider detail"); } };
+    expect(await handlePatientCommand(store, command("Harriet", "error"), broken, options)).toEqual({ kind: "failed", reply: "sent" });
+    expect(sent).toHaveLength(2);
+    expect(sent[0].text).toContain("text request");
+    expect(sent[1].text).toContain("couldn’t complete");
+    expect(sent[1].text).not.toContain("private provider detail");
+  });
+  it("does not repeat uncertain sends on redelivery or the worker", async () => {
+    const store = new CaseStore(":memory:");
+    const { PhotonSendUncertainError } = await import("../communications/photon-text");
+    const send = vi.fn(async () => { throw new PhotonSendUncertainError("acceptance unknown"); });
+    const options = { replyEnabled: true, patientPhone: patient, send };
+    expect(await handlePatientCommand(store, command("hello"), providers(), options)).toEqual({ kind: "unknown", reply: "uncertain" });
+    await handlePatientCommand(store, command("hello"), providers(), options);
+    expect(await sendPendingPatientReplies(store, options)).toBe(0);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+  it("retries a failed reply through the worker without repeating the investigation", async () => {
+    const store = new CaseStore(":memory:");
+    const { sent, send } = fakeSender();
+    await handlePatientCommand(store, command("Harriet"), providers(), { replyEnabled: true, patientPhone: patient, send: async () => { throw new Error("connection unavailable"); } });
+    expect(await sendPendingPatientReplies(store, { replyEnabled: true, patientPhone: patient, send })).toBe(1);
+    expect(await sendPendingPatientReplies(store, { replyEnabled: true, patientPhone: patient, send })).toBe(0);
+    expect(sent).toHaveLength(1);
+    expect(store.list()).toHaveLength(1);
+  });
+  it("a failed reply does not undo or repeat the investigation on redelivery", async () => {
     const store = new CaseStore(":memory:");
     const send: TextSender = async () => { throw new Error("blocked"); };
     expect(await handlePatientCommand(store, command("Morgan"), providers(), { replyEnabled: true, patientPhone: patient, send })).toEqual({ kind: "started", reply: "failed" });
@@ -92,6 +139,7 @@ describe("handlePatientCommand", () => {
 });
 
 describe("patient reply text", () => {
+  afterEach(() => vi.unstubAllEnvs());
   const reply = async (communications: MockCommunicationProvider) => {
     const store = new CaseStore(":memory:");
     const { sent, send } = fakeSender();
@@ -108,6 +156,25 @@ describe("patient reply text", () => {
     expect(saved.status).toBe("REQUESTING_BILL");
     expect(saved.communications).toHaveLength(0);
     expect(sent).toHaveLength(1);
-    expect(sent[0].text).toBe("Started the investigation into Morgan's hospital bill. Reply YES to authorize the call to hospital billing.");
+    expect(sent[0].text).toContain("no hospital call has been placed");
+    expect(sent[0].text).toContain("YES Morgan");
   });
+  it("keeps Harriet's approval instruction in the direct reply when progress updates are enabled but unavailable", async () => {
+    vi.stubEnv("PHOTON_UPDATE_TEXTS", "true");
+    vi.stubEnv("PHOTON_DEMO_TEXTS", "false");
+    const store = new CaseStore(":memory:");
+    const { sent, send } = fakeSender();
+    const communications = Object.assign(new MockCommunicationProvider(Number.POSITIVE_INFINITY), { requiresCallAuthorization: true });
+    await handlePatientCommand(store, command("investigate Harriet"), { ...providers(), communications }, { replyEnabled: true, patientPhone: patient, send });
+    expect(store.list()[0].status).toBe("REQUESTING_BILL");
+    expect(store.list()[0].communications).toHaveLength(0);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].text).toContain("YES Harriet");
+    expect(sent[0].text).toContain("NO Harriet");
+    expect(sent[0].text).toContain("real call to the demo hospital");
+    expect(sent[0].text).not.toContain("I'll text you at each step");
+    await handlePatientCommand(store, command("investigate Harriet"), { ...providers(), communications }, { replyEnabled: true, patientPhone: patient, send });
+    expect(sent).toHaveLength(1);
+  });
+
 });

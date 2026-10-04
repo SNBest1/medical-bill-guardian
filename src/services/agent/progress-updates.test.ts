@@ -49,4 +49,21 @@ describe("progress updates", () => {
     expect(await sendPendingProgressUpdates(store, send)).toBe(0);
     expect(sent[0]).toContain("itemized statement");
   });
+  it("shares website milestones with texts, dedupes reads, and permits updates after a new demo run", async () => {
+    const c = { ...at("REQUESTING_BILL"), scenarioId: "harriet-kidney" };
+    store.create(c);
+    const { sent, send } = sender();
+    expect(await sendProgressUpdate(store, c, send)).toBe("sent");
+    expect(sent[0]).toContain("Harriet");
+    expect(sent[0]).toContain("YES Harriet");
+    expect(await sendPendingProgressUpdates(store, send)).toBe(0);
+    const next = { ...c, status: "WAITING_FOR_BILL" as const };
+    store.save(next);
+    expect(await sendPendingProgressUpdates(store, send)).toBe(1);
+    const restarted = { ...c, auditLog: [{ ...c.auditLog[0], id: "new-run" }] };
+    store.save(restarted);
+    expect(await sendPendingProgressUpdates(store, send)).toBe(1);
+    expect(sent).toHaveLength(3);
+  });
+
 });

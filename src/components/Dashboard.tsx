@@ -4,12 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Check, HeartPulse, LoaderCircle, Mic, ShieldCheck } from "lucide-react";
 
+import { CaseExperience } from "./experience/CaseExperience";
+import type { MedicalBillCase } from "@/types/domain";
+
 const money = (value: number) => `$${value.toLocaleString()}`;
 
 type ScenarioCard = { id: string; label: string; story: string; patient: string; hospital: string; amount: number; date: string };
 type Recognition = { start: () => void; stop: () => void; onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onend: (() => void) | null; onerror: (() => void) | null; lang: string };
 
 export function Dashboard({ demo }: { demo: boolean }) {
+  const [activeCase, setActiveCase] = useState<MedicalBillCase | null>(null);
+  const [syncError, setSyncError] = useState(false);
+  const latestSeen = useRef("");
   const [scenarios, setScenarios] = useState<ScenarioCard[]>([]);
   const [focus, setFocus] = useState<ScenarioCard | null>(null);
   const [command, setCommand] = useState("");
@@ -18,6 +24,31 @@ export function Dashboard({ demo }: { demo: boolean }) {
   const [error, setError] = useState("");
   const recognition = useRef<Recognition | null>(null);
   useEffect(() => { fetch("/api/scenarios").then((response) => response.json()).then((list: ScenarioCard[]) => { setScenarios(list); setFocus(list[0] ?? null); }).catch(() => undefined); }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let pending = false;
+    const refresh = async () => {
+      if (pending) return;
+      pending = true;
+      try {
+        const response = await fetch("/api/active-case", { cache: "no-store" });
+        if (!response.ok) throw new Error("sync");
+        const latest: MedicalBillCase | null = await response.json();
+        if (cancelled) return;
+        setActiveCase(latest); setSyncError(false);
+        if (latest && latestSeen.current !== `${latest.id}:${latest.updatedAt}`) {
+          latestSeen.current = `${latest.id}:${latest.updatedAt}`;
+          const picked = scenarios.find((card) => card.id === latest.scenarioId);
+          if (picked) setFocus(picked);
+        }
+      } catch { if (!cancelled) setSyncError(true); }
+      finally { pending = false; }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 2000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [scenarios]);
 
   /** Sends the instruction (or a clicked card) to the agent, then opens the case it started. */
   async function send(body: { text?: string; scenarioId?: string }) {
@@ -37,13 +68,14 @@ export function Dashboard({ demo }: { demo: boolean }) {
     heard.onend = () => setListening(false); heard.onerror = () => { setListening(false); setError("I couldn't hear that. Try again or type it."); };
     setListening(true); heard.start();
   }
+  if (activeCase) return <CaseExperience key={activeCase.id} id={activeCase.id} demo={demo} />;
   const money_ = focus ?? { hospital: "University Hospital", amount: 4820, date: "2026-09-28" };
   const shown = new Date(`${money_.date}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   return <div className="gx-shell gx-landing-shell">
     <header className="gx-header"><Link href="/" className="gx-brand"><span><HeartPulse size={18}/></span>Medical Bill Guardian</Link><div className="gx-header-meta">{demo && <b>Demo · fictional patients</b>}</div></header>
     <main className="gx-landing">
       <section className="gx-landing-hero">
-        <div className="gx-landing-copy"><span className="gx-kicker">AFTER THE HOSPITAL</span><h1>You paid the bill.<br/><em>Did you owe it?</em></h1><p>Guardian checks each charge against your records, helps you ask billing the right question, and tracks what happens next.</p><form className="gx-command" onSubmit={(event) => { event.preventDefault(); if (command.trim()) void send({ text: command }); }}><label htmlFor="agent-command">Tell Guardian which bill to look into</label><div><input id="agent-command" value={command} onChange={(event) => setCommand(event.target.value)} placeholder="Investigate Morgan's hospital bill" disabled={busy} autoComplete="off"/><button type="button" className="gx-mic" onClick={listen} disabled={busy} aria-label={listening ? "Stop listening" : "Speak the instruction"} aria-pressed={listening}><Mic size={18}/></button><button className="gx-landing-cta" disabled={busy || !command.trim()}>{busy ? <LoaderCircle className="spin" size={19}/> : null} {busy ? "Starting…" : "Investigate"}<ArrowRight size={20}/></button></div></form><div className="gx-picks" role="group" aria-label="Or choose a patient">{scenarios.map((card) => <button key={card.id} disabled={busy} onMouseEnter={() => setFocus(card)} onFocus={() => setFocus(card)} onClick={() => void send({ scenarioId: card.id })}><strong>{card.label}</strong><span>{card.patient} · {money(card.amount)}</span></button>)}</div><a href="#how-it-works" className="gx-landing-link">How it works <ArrowRight size={15}/></a>{error && <p className="gx-error" role="alert">{error}</p>}</div>
+        <div className="gx-landing-copy"><span className="gx-kicker">AFTER THE HOSPITAL</span><h1>You paid the bill.<br/><em>Did you owe it?</em></h1><p>Guardian checks each charge against your records, helps you ask billing the right question, and tracks what happens next.</p><form className="gx-command" onSubmit={(event) => { event.preventDefault(); if (command.trim()) void send({ text: command }); }}><label htmlFor="agent-command">Tell Guardian which bill to look into</label><div><input id="agent-command" value={command} onChange={(event) => setCommand(event.target.value)} placeholder="Investigate Morgan's hospital bill" disabled={busy} autoComplete="off"/><button type="button" className="gx-mic" onClick={listen} disabled={busy} aria-label={listening ? "Stop listening" : "Speak the instruction"} aria-pressed={listening}><Mic size={18}/></button><button className="gx-landing-cta" disabled={busy || !command.trim()}>{busy ? <LoaderCircle className="spin" size={19}/> : null} {busy ? "Starting…" : "Investigate"}<ArrowRight size={20}/></button></div></form><div className="gx-picks" role="group" aria-label="Or choose a patient">{scenarios.map((card) => <button key={card.id} disabled={busy} onMouseEnter={() => setFocus(card)} onFocus={() => setFocus(card)} onClick={() => void send({ scenarioId: card.id })}><strong>{card.label}</strong><span>{card.patient} · {money(card.amount)}</span></button>)}</div><a href="#how-it-works" className="gx-landing-link">How it works <ArrowRight size={15}/></a>{error && <p className="gx-error" role="alert">{error}</p>}{syncError && <p role="status">Reconnecting to your current patient…</p>}</div>
         <div className="gx-bill-preview" aria-label={`${money_.hospital} statement`}><div className="gx-paid-stub"><span>PAYMENT</span><strong>PAID</strong><small>{shown}</small></div><div className="gx-preview-paper"><div className="gx-paper-head"><span>{money_.hospital.toUpperCase()}</span><small>STATEMENT</small></div><p>{focus ? focus.story.split(". ")[0].replace(/\.$/, "") : "A hospital visit and its itemized bill"}</p><div className="gx-paper-lines"><span/><span/><span/><span/><span/><span className="question"/></div><div className="gx-paper-total"><span>PAID TOTAL</span><strong>{money(money_.amount)}</strong></div></div><div className="gx-preview-caption"><ShieldCheck size={15}/> One case. Every charge. Evidence you can inspect.</div></div>
       </section>
       <section className="gx-how" id="how-it-works"><div><span className="gx-kicker">A SECOND LOOK THAT FOLLOWS THROUGH</span><h2>Understand. Ask. Track.</h2><p>A confusing bill creates work at exactly the wrong time. Guardian brings the payment, statement, and available records into one traceable case.</p></div><ol><li><span>01</span><div><strong>Understand the bill</strong><p>See each charge beside the record that supports it.</p></div></li><li><span>02</span><div><strong>Approve the question</strong><p>You decide before Guardian contacts hospital billing.</p></div></li><li><span>03</span><div><strong>Track the result</strong><p>A correction, refund owed, and refund received stay separate.</p></div></li></ol></section>

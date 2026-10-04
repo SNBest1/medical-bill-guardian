@@ -73,7 +73,7 @@ export class FishDemoCommunicationProvider implements CommunicationProvider {
   async requestItemizedBill({ caseId, attemptId, providerName, scenarioId }: ItemizedBillRequestContext): Promise<Communication> {
     const problems = fishProblems(this.config);
     if (problems.length) throw new FishConfigError(problems);
-    const dynamicVariables = buildDynamicVariables(providerName, this.config, scenarioId);
+    const dynamicVariables = { ...buildDynamicVariables(providerName, this.config, scenarioId), receipt_case_id: caseId, receipt_attempt_id: attemptId };
 
     const sessionId = await this.placeCall(this.config.agentId, dynamicVariables, fishCallIdempotencyKey(caseId, attemptId, this.config.toNumber));
 
@@ -84,6 +84,8 @@ export class FishDemoCommunicationProvider implements CommunicationProvider {
       status: "PENDING",
       transcript: `AI demo call to ${providerName} billing at the configured demo recipient (${maskPhone(this.config.toNumber)}), asking for an itemized bill and for it to be texted as a PDF link to the Guardian line (${maskPhone(this.config.guardianLine)}). Fictional demonstration data only.`,
       result: `Fish call queued · session ${sessionId}`,
+      sessionId,
+      live: true,
     };
   }
 

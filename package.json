@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "worker": "node scripts/integration-worker.mjs",
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "receipt-bridge": "node scripts/fish-receipt-bridge.mjs"
   },
   "dependencies": {
     "animejs": "4.5.0",

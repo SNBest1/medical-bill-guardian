@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, CircleAlert, FileCheck2, HeartPulse, LoaderCircle, LockKeyhole, RotateCcw, ShieldCheck } from "lucide-react";
 import type { Finding, MedicalBillCase } from "@/types/domain";
+import { PatientTextStatus } from "./PatientTextStatus";
+import { CostsAndSources } from "./CostsAndSources";
 import { CaseActivity } from "../CaseActivity";
 import { InsuranceReview } from "../InsuranceReview";
 import { PriceCatalog } from "../PriceCatalog";
@@ -11,7 +13,7 @@ import { StatementInbox } from "../StatementInbox";
 import { CaseStage } from "./CaseStage";
 import { ReviewCall } from "./ReviewCall";
 import { RecordsPanel, RecordSourceSummary } from "./RecordsPanel";
-import { CallStatusLines, CallingBilling } from "./CallingBilling";
+import { CallStatusLines, CallingBilling, patientName } from "./CallingBilling";
 import { AuthorizeCall } from "./AuthorizeCall";
 import { BillScan, ReadingPanel } from "./ReadingPanel";
 import { caseViewModel, type ExperienceBeat } from "./view-model";
@@ -28,6 +30,8 @@ function findingLabel(finding: Finding) {
 
 export function CaseExperience({ id, demo }: { id: string; demo: boolean }) {
   const { caseData, busy, error, action, pollStalled, retryPoll } = useCaseSession(id);
+  const [leaving, setLeaving] = useState(false);
+  const [leaveError, setLeaveError] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [callOpen, setCallOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -50,7 +54,21 @@ export function CaseExperience({ id, demo }: { id: string; demo: boolean }) {
     }
   }, [caseData]);
 
-  if (!caseData || !view) return <div className="gx-shell"><header className="gx-header"><Link href="/" className="gx-brand"><span><HeartPulse size={18}/></span>Medical Bill Guardian</Link></header><main className="gx-loading">{error || "Loading the case…"}</main></div>;
+  async function leave() {
+    setLeaving(true); setLeaveError("");
+    try {
+      const response = await fetch(`/api/cases/${id}/leave`, { method: "POST" });
+      if (!response.ok) throw new Error("Could not leave. Please try again.");
+      window.speechSynthesis?.cancel();
+      window.location.assign("/");
+    } catch (cause) {
+      setLeaveError(cause instanceof Error ? cause.message : "Could not leave. Please try again.");
+      setLeaving(false);
+    }
+  }
+  const exitControl = <div className="gx-exit-control"><button type="button" className="gx-exit" onClick={() => void leave()} disabled={leaving}><ArrowLeft size={16}/>{leaving ? "Leaving…" : "I’m done · Exit"}</button>{leaveError && <span role="alert">{leaveError}</span>}</div>;
+
+  if (!caseData || !view) return <div className="gx-shell"><header className="gx-header"><Link href="/" className="gx-brand"><span><HeartPulse size={18}/></span>Medical Bill Guardian</Link>{exitControl}</header><main className="gx-loading">{error || "Loading the case…"}</main></div>;
 
   const activeBeat = presentationBeat ?? (callOpen ? "conversation" : view.beat);
   const bill = caseData.bill;
@@ -67,10 +85,12 @@ export function CaseExperience({ id, demo }: { id: string; demo: boolean }) {
   }
 
   return <div className="gx-shell">
-    <header className="gx-header"><Link href="/" className="gx-brand"><span><HeartPulse size={18}/></span>Medical Bill Guardian</Link><div className="gx-header-meta"><span>Demo · fictional patients</span><b>{caseData.id}</b></div></header>
+    <header className="gx-header"><Link href="/" className="gx-brand"><span><HeartPulse size={18}/></span>Medical Bill Guardian</Link><div className="gx-header-meta"><span>Demo · fictional patient</span><b>{patientName(caseData)}</b>{exitControl}</div></header>
+    <p className="gx-exit-note">Leave whenever you like. Your case is saved; a call already placed can still finish.</p>
+    <PatientTextStatus id={id} />
     <nav className="gx-rail" aria-label="Case stages">{stages.map((stage, index) => <button key={stage.id} disabled={!unlocked(stage.id)} className={activeBeat === stage.id ? "active" : ""} onClick={() => { setPresentationBeat(stage.id); document.getElementById("case-workspace")?.scrollIntoView({ behavior: "smooth" }); }}><span>{index + 1}</span>{stage.label}</button>)}</nav>
     <main className="gx-main" id="case-workspace">
-      <div className="gx-back-row"><Link href="/"><ArrowLeft size={15}/> Home</Link><span>{caseData.provider.name} · {date(caseData.transaction.date)} · {bill?.invoiceId ?? "statement pending"}</span></div>
+      <div className="gx-back-row"><strong>{patientName(caseData)}</strong><span>{caseData.provider.name} · {date(caseData.transaction.date)} · {bill?.invoiceId ?? "statement pending"}</span></div>
       <section className="gx-workspace">
         <div className="gx-copy-panel">
           {activeBeat === "bill" && <div className="gx-beat-copy"><span className="gx-kicker">THE BILL</span><h1>Let’s see what<br/>you paid for.</h1><p>A {money(caseData.transaction.amount)} hospital payment opened this case. With your permission, Guardian will retrieve the statement and compare it with the available records.</p><div className="gx-fact"><span>{caseData.provider.name}</span><strong>{money(caseData.transaction.amount)}</strong><small>Paid {date(caseData.transaction.date)}</small></div>{view.canCollect ? <button className="gx-primary" disabled={busy} onClick={() => void action("run", { authorized: true })}>{busy ? <LoaderCircle className="spin" size={18}/> : <LockKeyhole size={18}/>} {busy ? "Requesting the bill…" : "Authorize bill review"}<ArrowRight size={18}/></button> : <button className="gx-primary" onClick={() => setPresentationBeat(view.beat)}>Continue case <ArrowRight size={18}/></button>}<small className="gx-disclosure">Allows Guardian to retrieve this bill’s records and itemized statement.</small></div>}
@@ -91,11 +111,12 @@ export function CaseExperience({ id, demo }: { id: string; demo: boolean }) {
         <div className="gx-visual-panel">{activeBeat === "collecting" && !view.awaitingCallAuth ? <CallingBilling caseData={caseData} /> : activeBeat === "reading" && caseData.reading ? <BillScan reading={caseData.reading} /> : <CaseStage caseData={caseData} beat={activeBeat} selectedId={selected}/>}{bill && (activeBeat === "evidence" || activeBeat === "conversation") && <div className="gx-ledger" aria-label="Itemized bill evidence">{bill.items.map((item) => { const finding = caseData.findings.find((entry) => entry.billItemId === item.id); const active = item.id === selected; return <button key={item.id} className={active ? "active" : ""} onClick={() => setSelected(item.id)}><span className={finding?.action === "REQUEST_REVIEW" ? "question" : "supported"}>{finding?.action === "REQUEST_REVIEW" ? <CircleAlert size={14}/> : <CheckCircle2 size={14}/>}</span><span><strong>{item.description}</strong><small>{finding ? findingLabel(finding) : "Awaiting evidence"}</small></span><b>{money(item.amount)}</b></button>; })}</div>}</div>
       </section>
 
-      <section className="gx-evidence-detail" aria-live="polite">{selectedFinding ? <><div><span className="gx-kicker">SELECTED EVIDENCE</span><h2>{selectedItem?.description ?? selectedFinding.description}</h2><p>{selectedRecords.length ? selectedRecords.map((record) => `${record.description} · ${record.date}`).join(" · ") : "No corresponding service was found in the available records."}</p>{selectedRecords.length > 0 && <div className="gx-source-list">{selectedRecords.map((record) => <span key={record.id}><FileCheck2 size={12}/>{record.type} record · {record.id}</span>)}</div>}</div><div className="gx-detail-verdict"><span>Clinical review</span><strong>{findingLabel(selectedFinding)}</strong><small>Price review: {selectedFinding.pricingStatus === "REVIEW" ? "Review recommended" : selectedFinding.pricingStatus === "ASSESSED" ? "Assessed" : "Not assessed"}</small></div></> : <><div><span className="gx-kicker">CASE STATUS</span><h2>Evidence appears after the statement arrives.</h2></div></>}</section>
+      <CostsAndSources caseData={caseData} />
+      <section className="gx-evidence-detail" aria-live="polite">{selectedFinding ? <><div><span className="gx-kicker">SELECTED EVIDENCE</span><h2>{selectedItem?.description ?? selectedFinding.description}</h2><p>{selectedRecords.length ? selectedRecords.map((record) => `${record.description} · ${record.date}`).join(" · ") : "No corresponding service was found in the available records."}</p>{selectedRecords.length > 0 && <div className="gx-source-list">{selectedRecords.map((record) => <span key={record.id}><FileCheck2 size={12}/>{record.type} record · {record.id}</span>)}</div>}</div><div className="gx-detail-verdict"><span>Clinical review · FinchNode / available records</span><strong>{findingLabel(selectedFinding)}</strong><small>Price review: {selectedFinding.pricingStatus === "REVIEW" ? "Review recommended" : selectedFinding.pricingStatus === "ASSESSED" ? "Assessed" : "Not assessed"}</small></div></> : <><div><span className="gx-kicker">CASE STATUS</span><h2>Evidence appears after the statement arrives.</h2></div></>}</section>
       <RecordsPanel caseData={caseData} />
       <button className="gx-details-toggle" onClick={() => setDetailsOpen((open) => !open)}>What did Guardian check? <ChevronDown size={17} className={detailsOpen ? "open" : ""}/></button>
-      {detailsOpen && <div className="gx-details">{caseData.reading && <ReadingPanel reading={caseData.reading} compact />}<InsuranceReview caseData={caseData} onUpdated={() => window.location.reload()} /><PriceCatalog /><CaseActivity auditLog={caseData.auditLog} communications={caseData.communications}/></div>}
-      <footer className="gx-footer"><span><ShieldCheck size={15}/> Missing evidence means “ask,” not “invalid.”</span>{demo && <button onClick={() => void restart()}><RotateCcw size={14}/> Restart this case</button>}</footer>
+      {detailsOpen && <div className="gx-details">{caseData.reading && <ReadingPanel reading={caseData.reading} compact />}<InsuranceReview caseData={caseData} onUpdated={() => window.location.reload()} /><PriceCatalog codes={[...new Set(caseData.bill?.items.flatMap((item) => item.code ? [item.code] : []) ?? [])]} /><CaseActivity auditLog={caseData.auditLog} communications={caseData.communications}/></div>}
+      <footer className="gx-footer"><span><ShieldCheck size={15}/> Missing evidence means “ask,” not “invalid.”</span>{demo && <button onClick={() => void restart()}><RotateCcw size={14}/> Restart this patient</button>}</footer>
     </main>
   </div>;
 }

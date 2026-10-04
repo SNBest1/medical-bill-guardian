@@ -115,7 +115,8 @@ const audit = (current: MedicalBillCase, action: string, tool: string, input: st
  */
 export async function processBillLink(store: CaseStore, link: HospitalBillLink, deps: BillLinkDeps): Promise<BillLinkOutcome> {
   const sleep = deps.sleep ?? wait;
-  const waiting = store.list().filter((candidate) => candidate.status === "WAITING_FOR_BILL");
+  const active = store.activeCase();
+  const waiting = (active ? [active] : store.list()).filter((candidate) => candidate.status === "WAITING_FOR_BILL");
   if (!waiting.length) { store.finishBillLink(link.messageId, "UNMATCHED", "No case is waiting for an itemized bill"); return "unmatched"; }
   const sink = new ReadingSink(store, waiting.length === 1 ? waiting[0].id : undefined);
   const where = redactUrl(link.url);

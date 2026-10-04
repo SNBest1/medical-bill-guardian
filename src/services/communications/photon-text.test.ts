@@ -4,10 +4,10 @@ import type { MedicalBillCase } from "../../types/domain";
 
 const ENV_KEYS = ["PHOTON_DEMO_TEXTS", "DEMO_HOSPITAL_PHONE", "DEMO_PATIENT_PHONE", "SPECTRUM_PROJECT_ID", "SPECTRUM_PROJECT_SECRET"] as const;
 
-function withEnv<T>(overrides: Partial<Record<(typeof ENV_KEYS)[number], string>>, fn: () => T): T {
+async function withEnv<T>(overrides: Partial<Record<(typeof ENV_KEYS)[number], string>>, fn: () => T | Promise<T>): Promise<T> {
   const previous = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
   for (const key of ENV_KEYS) { const value = overrides[key]; if (value === undefined) delete process.env[key]; else process.env[key] = value; }
-  try { return fn(); }
+  try { return await fn(); }
   finally { for (const key of ENV_KEYS) { const value = previous[key]; if (value === undefined) delete process.env[key]; else process.env[key] = value; } }
 }
 
@@ -67,6 +67,14 @@ describe("sendPhotonText", () => {
       await expect(sendPhotonText("+15555550123", "hi", throwingConnect)).rejects.toBeInstanceOf(PhotonSendUncertainError);
     });
     expect(stopped).toBe(true);
+  });
+
+  it("preserves acceptance and uncertainty when connection cleanup fails", async () => {
+    await withEnv(baseEnv, async () => {
+      const stop = async () => { throw new Error("cleanup failure"); };
+      expect(await sendPhotonText("+15555550123", "hi", async () => ({ send: async () => ({ id: "accepted" }), stop }))).toBe("accepted");
+      await expect(sendPhotonText("+15555550123", "hi", async () => ({ send: async () => { throw new Error("send failed"); }, stop }))).rejects.toBeInstanceOf(PhotonSendUncertainError);
+    });
   });
 
   it("treats a failure to even start the connection as a definite, retry-safe failure", async () => {

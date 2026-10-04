@@ -1,9 +1,10 @@
 import type { CaseStore } from "../../lib/db";
 import type { MedicalBillCase } from "../../types/domain";
-import { PhotonSendUncertainError, sendPhotonText } from "../communications/photon-text";
+import { PhotonSendUncertainError, sendPhotonText, safePhotonError } from "../communications/photon-text";
 import type { TextSender } from "./patient-command";
+import { getScenario } from "../scenarios";
 
-export type ProgressMilestone = "RECORDS_FOUND" | "BILL_REQUESTED" | "REVIEW_NEEDED" | "HOSPITAL_CONTACTED" | "OUTCOME" | "REFUND_RECEIVED";
+export type ProgressMilestone = "RECORDS_FOUND" | "BILL_REQUESTED" | "REVIEW_NEEDED" | "HOSPITAL_CONTACTED" | "OUTCOME" | "REFUND_OFFER" | "REFUND_RECEIVED";
 
 /** Opt-in switch shared by the sender and the reply logic so the patient is never texted twice for one step. */
 export const progressUpdatesEnabled = () => process.env.PHOTON_UPDATE_TEXTS === "true" && process.env.DEMO_MODE !== "false";
@@ -12,23 +13,39 @@ const money = (amount: number) => `$${amount.toLocaleString()}`;
 
 /** The one milestone the case is at right now, with a fixed template built only from structured case facts. Earlier milestones the case skipped past are never sent late. */
 export function currentMilestone(c: MedicalBillCase): { milestone: ProgressMilestone; text: string } | null {
-  const who = c.provider.name;
+  const patient = c.scenarioId ? getScenario(c.scenarioId)?.patient.firstName : undefined;
+  const who = patient ? `${patient}’s ${c.provider.name}` : c.provider.name;
+  const name = c.scenarioId ? getScenario(c.scenarioId)?.patient.firstName : undefined;
+  const approve = name ? `YES ${name}` : "YES";
+  const decline = name ? `NO ${name}` : "NO";
   if (c.recovery?.status === "REFUND_RECEIVED") return { milestone: "REFUND_RECEIVED", text: `Update on your ${who} bill: the ${money(c.recovery.amount)} demo refund credit has arrived (synthetic, no real money moved). This case is closed.` };
   switch (c.status) {
-    case "REQUESTING_BILL": return { milestone: "RECORDS_FOUND", text: `Update on your ${who} bill: I found ${c.medicalRecords.length} medical ${c.medicalRecords.length === 1 ? "record" : "records"} from around your ${money(c.transaction.amount)} payment. Reply YES and I'll call hospital billing to ask for the itemized bill. Nothing has been sent to the hospital yet.` };
+    case "REQUESTING_BILL": return { milestone: "RECORDS_FOUND", text: `Update on your ${who} bill: I found ${c.medicalRecords.length} medical ${c.medicalRecords.length === 1 ? "record" : "records"} from around your ${money(c.transaction.amount)} payment. Reply ${approve} to authorize a real call to the demo hospital to ask for the itemized bill, or ${decline} to hold off. Nothing has been sent to the hospital yet.` };
     case "WAITING_FOR_BILL": return { milestone: "BILL_REQUESTED", text: `Update on your ${who} bill: I asked hospital billing for the itemized statement. I'm waiting for it and will text you the moment it arrives.` };
     case "REVIEW_REQUIRED": {
       const flagged = c.findings.filter((finding) => finding.action === "REQUEST_REVIEW");
       const supported = c.findings.filter((finding) => finding.clinicalStatus === "SUPPORTED").length;
-      return { milestone: "REVIEW_NEEDED", text: `Update on your ${who} bill: the itemized bill arrived and I checked all ${c.findings.length} charges. ${supported} match your records. ${flagged.length} (${money(flagged.reduce((sum, finding) => sum + finding.amount, 0))}) I couldn't verify, which isn't proof of an error. I won't contact billing about ${flagged.length === 1 ? "it" : "them"} until you approve. Reply YES to approve, or NO to leave it.` };
+      return { milestone: "REVIEW_NEEDED", text: `Update on your ${who} bill: the itemized bill arrived and I checked all ${c.findings.length} charges. ${supported} match your records. ${flagged.length} (${money(flagged.reduce((sum, finding) => sum + finding.amount, 0))}) I couldn't verify, which isn't proof of an error. I won't contact billing about ${flagged.length === 1 ? "it" : "them"} until you approve. Reply ${approve} to approve, or ${decline} to leave it.` };
     }
     case "WAITING_FOR_PROVIDER": return { milestone: "HOSPITAL_CONTACTED", text: `Update on your ${who} bill: you approved the review and I've contacted hospital billing. They haven't given a final answer yet; I'll text you when they do.` };
     case "USER_NOTIFIED": {
       const r = c.resolution;
+      if (c.recovery?.status === "REFUND_PENDING" && c.recovery.simulated) return { milestone: "REFUND_OFFER", text: `Update on your ${who} bill: hospital billing corrected the bill${r ? ` from ${money(r.originalTotal)} to ${money(r.correctedTotal)}` : ""}. Your ${money(c.recovery.amount)} demo refund is ready. Want me to send the demo credit back now? Reply YES ${name ?? ""} or SEND IT, or NO to hold off. This is a synthetic credit; no real money moves.` };
       return { milestone: "OUTCOME", text: r ? `Update on your ${who} bill: hospital billing responded. Your bill went from ${money(r.originalTotal)} to ${money(r.correctedTotal)}${r.adjustment > 0 ? ` (${money(r.adjustment)} correction)` : ""}. Text STATUS any time for an update.` : `Update on your ${who} bill: the review is finished. Text STATUS any time for an update.` };
     }
     default: return null;
   }
+}
+
+export function progressTextKey(c: MedicalBillCase): string | null {
+  const update = currentMilestone(c);
+  return update ? `${c.id}:${c.auditLog[0]?.id ?? c.createdAt}:update:${update.milestone}` : null;
+}
+
+export function progressAccepted(store: CaseStore, c: MedicalBillCase): boolean {
+  const key = progressTextKey(c);
+  const status = key ? store.textStatus(key)?.status : undefined;
+  return status === "ACCEPTED" || status === "UNCERTAIN" || status === "SENDING";
 }
 
 /**
@@ -39,17 +56,19 @@ export function currentMilestone(c: MedicalBillCase): { milestone: ProgressMiles
  */
 export async function sendProgressUpdate(store: CaseStore, c: MedicalBillCase, send: TextSender = sendPhotonText): Promise<"sent" | "skipped" | "uncertain" | "failed"> {
   if (!progressUpdatesEnabled()) return "skipped";
+  const active = store.activeCase();
+  if (active && active.id !== c.id) return "skipped";
   const phone = process.env.DEMO_PATIENT_PHONE;
   const update = currentMilestone(c);
   if (!phone || !update) return "skipped";
-  const key = `${c.id}:update:${update.milestone}`;
+  const key = progressTextKey(c)!;
   if (!store.beginText(key) && !store.retryText(key)) return "skipped";
   try {
     store.finishText(key, await send(phone, update.text));
     return "sent";
   } catch (error) {
     if (error instanceof PhotonSendUncertainError) { store.finishText(key); return "uncertain"; }
-    store.failText(key);
+    store.failText(key, safePhotonError(error));
     return "failed";
   }
 }

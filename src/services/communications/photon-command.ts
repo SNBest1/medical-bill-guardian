@@ -1,21 +1,20 @@
 import type { PhotonInboundFields } from "./photon-inbox";
 import type { LocalPhotonMessage, LocalPhotonSpace } from "./photon-receiver";
 
-export interface PatientCommand { messageId: string; text: string }
+export interface PatientCommand { messageId: string; text: string; unsupported?: "too-long" | "unreadable" }
 export const MAX_COMMAND_CHARS = 500;
 
 /**
- * The single patient-command acceptance policy: inbound, DM, iMessage, plain text, short, and sent
- * by exactly the approved patient phone. Anything else returns null and is ignored silently, so
- * nothing is ever sent back to a stranger and the reason is never revealed.
+ * Accept only inbound iMessage DMs from the approved patient. Unreadable and oversized
+ * messages receive guidance without becoming commands; other senders are ignored.
  */
 export function evaluatePatientCommand(fields: PhotonInboundFields, patientPhone: string): PatientCommand | null {
   if (fields.direction !== "inbound" || fields.spaceType !== "dm" || !/^imessage$/i.test(fields.messagePlatform ?? "") || !/^imessage$/i.test(fields.spacePlatform ?? "")) return null;
   if (!/^\+[1-9]\d{7,14}$/.test(patientPhone) || fields.senderId !== patientPhone) return null;
-  if (fields.contentType !== "text" || typeof fields.contentText !== "string") return null;
-  const text = fields.contentText.trim();
-  if (!text || text.length > MAX_COMMAND_CHARS) return null;
   if (!fields.messageId || fields.messageId.length > 256) return null;
+  if (fields.contentType !== "text" || typeof fields.contentText !== "string" || !fields.contentText.trim()) return { messageId: fields.messageId, text: "", unsupported: "unreadable" };
+  const text = fields.contentText.trim();
+  if (text.length > MAX_COMMAND_CHARS) return { messageId: fields.messageId, text: "", unsupported: "too-long" };
   return { messageId: fields.messageId, text };
 }
 

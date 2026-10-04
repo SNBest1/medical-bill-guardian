@@ -29,6 +29,8 @@ describe("FishDemoCommunicationProvider", () => {
       phone_number_id: "phone-1",
       to_number: "+15555550100",
       dynamic_variables: {
+        receipt_case_id: "CASE-1",
+        receipt_attempt_id: "run-a",
         patient_name: "Morgan Rivera",
         hospital_name: "Northstar Health System",
         payment_amount: "1,102 dollars",
