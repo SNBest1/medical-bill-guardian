@@ -1,13 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import { generateCaseSummary } from "./summary";
-import { createCase, investigateCase, analyzeCase, reviewCase } from "./orchestrator";
+import { createCase, investigateCase, requestItemizedBill, analyzeCase, reviewCase } from "./orchestrator";
 import { demoTransaction } from "../demo";
 import { MockMedicalRecordProvider } from "../medical/mock";
 import { MockCommunicationProvider } from "../communications/mock";
 
 async function reviewedCase() {
   const provider = new MockCommunicationProvider(0);
-  const investigated = await analyzeCase(await investigateCase(createCase(demoTransaction), new MockMedicalRecordProvider(), provider), provider);
+  const ready = await investigateCase(createCase(demoTransaction), new MockMedicalRecordProvider());
+  const waiting = await requestItemizedBill(ready, provider, true);
+  const investigated = await analyzeCase(waiting, provider);
   return reviewCase(investigated, new MockCommunicationProvider(), true);
 }
 

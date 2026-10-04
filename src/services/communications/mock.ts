@@ -1,6 +1,6 @@
 import { demoBill, demoStatement } from "../demo";
 import type { Communication, Finding, Resolution } from "../../types/domain";
-import type { CommunicationProvider } from "./provider";
+import type { CommunicationProvider, ItemizedBillRequestContext } from "./provider";
 
 const communication = (type: Communication["type"], transcript: string, result: string): Communication => ({ id: crypto.randomUUID(), type, timestamp: new Date().toISOString(), status: "COMPLETED", transcript, result });
 
@@ -8,7 +8,7 @@ export class MockCommunicationProvider implements CommunicationProvider {
   constructor(private readonly billDelayMs = 750) {}
 
   /** Records a pending request without contacting a hospital. */
-  async requestItemizedBill(providerName: string) {
+  async requestItemizedBill({ providerName }: ItemizedBillRequestContext) {
     if (providerName !== "University Hospital") throw new Error("The demo fixture supports only University Hospital");
     return { ...communication("ITEMIZED_BILL_REQUEST", `Demo request to ${providerName} billing for an itemized statement, service dates, codes, charges, adjustments, and patient responsibility.`, "Awaiting itemized statement"), status: "PENDING" as const };
   }

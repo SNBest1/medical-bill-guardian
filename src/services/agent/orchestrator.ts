@@ -19,8 +19,8 @@ export function createCase(transaction: Transaction): MedicalBillCase {
   return { id: transaction.id === "nessie-demo-4820" ? "CASE-4821" : `CASE-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: "DETECTED", transaction, provider: { name: transaction.merchant }, medicalRecords: [], bill: null, findings: [], communications: [], timeline: [{ id: crypto.randomUUID(), timestamp: now, title: "Hospital payment detected", detail: `$${transaction.amount.toLocaleString()} payment to ${transaction.merchant}`, source: "Bank transaction", status: "complete" }], auditLog: [{ id: crypto.randomUUID(), timestamp: now, action: "CREATE_CASE", tool: "getTransaction", inputSummary: transaction.id, outputSummary: "Case opened", status: "SUCCESS" }], resolution: null, summary: null, createdAt: now, updatedAt: now };
 }
 
-/** Retrieves records, requests a bill, and waits for the provider's statement. */
-export async function investigateCase(current: MedicalBillCase, medical: MedicalRecordProvider, communications: CommunicationProvider): Promise<MedicalBillCase> {
+/** Retrieves records and pauses before any provider contact is made. */
+export async function investigateCase(current: MedicalBillCase, medical: MedicalRecordProvider): Promise<MedicalBillCase> {
   if (current.status !== "DETECTED") return current;
   const next = structuredClone(current);
   next.status = "FETCHING_RECORDS";
@@ -29,9 +29,18 @@ export async function investigateCase(current: MedicalBillCase, medical: Medical
   const encounter = matchEncounter(next.transaction, next.medicalRecords);
   if (encounter) record(next, "MATCH_ENCOUNTER", "matchEncounter", next.transaction.merchant, encounter.id, "Medical encounter located", `${encounter.description} · ${encounter.date}`, "Medical record");
   next.status = "REQUESTING_BILL";
-  const request = await communications.requestItemizedBill(next.provider.name);
+  return next;
+}
+
+/** Requests the itemized statement only after explicit user authorization. */
+export async function requestItemizedBill(current: MedicalBillCase, communications: CommunicationProvider, authorized: boolean): Promise<MedicalBillCase> {
+  if (!authorized) throw new Error("User authorization is required before requesting an itemized bill");
+  if (current.status !== "REQUESTING_BILL") throw new Error("Case is not ready to request an itemized bill");
+  if (current.communications.some((item) => item.type === "ITEMIZED_BILL_REQUEST")) throw new Error("An itemized bill request already exists");
+  const next = structuredClone(current);
+  const request = await communications.requestItemizedBill({ caseId: next.id, attemptId: next.auditLog[0].id, providerName: next.provider.name });
   next.communications.push(request);
-  record(next, "REQUEST_BILL", "requestItemizedBill", next.provider.name, "Bill request submitted", "Itemized bill requested", "Waiting for the provider's statement", "Hospital billing");
+  record(next, "REQUEST_BILL", "requestItemizedBill", next.provider.name, "Call queued", "Hospital call queued", "The authorized request for an itemized bill was queued; the statement has not been received yet", "Hospital billing");
   next.status = "WAITING_FOR_BILL";
   return next;
 }
