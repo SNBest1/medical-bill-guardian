@@ -379,3 +379,69 @@ git log --oneline --decorate -8
 ```
 
 Expected: clean formatting, only scoped changes, and no `.env`, database, API key, or phone number in Git. Push `codex/receipt-trace-demo`; the existing pull request should update automatically. Amend its description with the authorization gate, Fish Audio side effect, synthetic statement boundary, and verification results.
+
+---
+
+### Task 6: Scope idempotency to the configured destination
+
+**Files:**
+- Modify: `src/services/communications/fish-demo.ts`
+- Modify: `src/services/communications/fish-demo.test.ts`
+
+**Interfaces:**
+- Produces: `fishCallIdempotencyKey(caseId: string, toNumber: string): string`.
+- Consumes: Node's built-in `createHash` from `node:crypto`; no new dependency.
+
+- [ ] **Step 1: Add failing idempotency tests**
+
+Add assertions that two calls for `CASE-4821` and the same normalized destination send the same `Idempotency-Key`, while changing only the destination sends a different key. Assert that neither full destination nor its final four digits occur in either key.
+
+```ts
+expect(fishCallIdempotencyKey("CASE-4821", "+13135550199"))
+  .toBe(fishCallIdempotencyKey("CASE-4821", "+13135550199"));
+expect(fishCallIdempotencyKey("CASE-4821", "+13135550199"))
+  .not.toBe(fishCallIdempotencyKey("CASE-4821", "+13135558688"));
+```
+
+- [ ] **Step 2: Run the focused test and verify failure**
+
+Run: `npm test -- src/services/communications/fish-demo.test.ts`
+
+Expected: FAIL because `fishCallIdempotencyKey` is not exported and the existing key ignores the destination.
+
+- [ ] **Step 3: Implement the destination fingerprint**
+
+Create the key from a normalized E.164 destination and a 16-character hexadecimal SHA-256 prefix:
+
+```ts
+import { createHash } from "node:crypto";
+
+export function fishCallIdempotencyKey(caseId: string, toNumber: string) {
+  const destinationFingerprint = createHash("sha256").update(toNumber.trim()).digest("hex").slice(0, 16);
+  return `medical-bill-guardian:${caseId}:request-itemized-bill:${destinationFingerprint}`;
+}
+```
+
+Use this function in the outbound request header. Do not add timestamps, random values, raw phone digits, or mutable process state.
+
+- [ ] **Step 4: Run full safe verification**
+
+Run:
+
+```bash
+npm test
+npm run typecheck
+npm run build
+git diff --check
+```
+
+Expected: all commands pass; tests use injected `fetch` and no real Fish call occurs.
+
+- [ ] **Step 5: Commit and restart the demo**
+
+```bash
+git add src/services/communications/fish-demo.ts src/services/communications/fish-demo.test.ts docs/superpowers/plans/2026-10-03-fish-outbound-bill-request.md
+git commit -m "fix: scope Fish idempotency to destination"
+```
+
+Stop the current Next.js process and run `npm run dev` again so the demo serves the verified change on port 3000. Do not press the authorization button; the user performs the real call.
