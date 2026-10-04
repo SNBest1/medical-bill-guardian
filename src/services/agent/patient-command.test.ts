@@ -108,6 +108,6 @@ describe("patient reply text", () => {
     expect(saved.status).toBe("REQUESTING_BILL");
     expect(saved.communications).toHaveLength(0);
     expect(sent).toHaveLength(1);
-    expect(sent[0].text).toBe("Started the investigation into Maya's hospital bill. Open the case page to authorize the call to hospital billing.");
+    expect(sent[0].text).toBe("Started the investigation into Maya's hospital bill. Reply YES to authorize the call to hospital billing.");
   });
 });
