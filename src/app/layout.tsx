@@ -9,5 +9,5 @@ const data = DM_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--
 export const metadata: Metadata = { title: "Medical Bill Guardian", description: "A clearer view of every hospital charge." };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body className={`${display.variable} ${interfaceFont.variable} ${data.variable}`}>{children}</body></html>;
+  return <html lang="en" data-scroll-behavior="smooth"><body className={`${display.variable} ${interfaceFont.variable} ${data.variable}`}>{children}</body></html>;
 }
