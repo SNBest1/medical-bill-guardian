@@ -6,7 +6,7 @@ export interface Scenario {
   label: string;
   accident: string;
   patient: { firstName: string; lastName: string; street: string; city: string; state: string; zip: string };
-  hospital: { name: string; street: string; city: string; state: string; zip: string };
+  hospital: { name: string; street: string; city: string; state: string; zip: string; lat: number; lng: number };
   transaction: Transaction;
   records: MedicalRecord[];
   statement: string;
@@ -26,7 +26,7 @@ export const scenarios: Scenario[] = [
     label: "Cycling crash: broken wrist",
     accident: "Maya Ortiz was hit by a car door while cycling and fractured her left wrist.",
     patient: { firstName: "Maya", lastName: "Ortiz", street: "412 Alder Street", city: "Portland", state: "OR", zip: "97205" },
-    hospital: { name: lakeside, street: "1800 Lakeshore Drive", city: "Portland", state: "OR", zip: "97209" },
+    hospital: { name: lakeside, street: "1800 Lakeshore Drive", city: "Portland", state: "OR", zip: "97209", lat: 45.52, lng: -122.68 },
     transaction: { id: "scenario-bike-wrist", merchant: lakeside, amount: 3140, date: "2026-09-14", category: "healthcare" },
     records: [
       record(lakeside, "2026-09-14", "bw-er", "encounter", "Emergency room visit after cycling crash"),
@@ -53,7 +53,7 @@ Total: 3140.00`,
     label: "Car collision: concussion",
     accident: "Daniel Brooks was rear-ended on the highway and treated for a concussion and neck pain.",
     patient: { firstName: "Daniel", lastName: "Brooks", street: "88 Harbor View Road", city: "Seattle", state: "WA", zip: "98101" },
-    hospital: { name: summit, street: "500 Summit Avenue", city: "Seattle", state: "WA", zip: "98104" },
+    hospital: { name: summit, street: "500 Summit Avenue", city: "Seattle", state: "WA", zip: "98104", lat: 47.61, lng: -122.33 },
     transaction: { id: "scenario-car-concussion", merchant: summit, amount: 6760, date: "2026-09-21", category: "healthcare" },
     records: [
       record(summit, "2026-09-21", "cc-er", "encounter", "Emergency room visit after car collision"),
@@ -80,7 +80,7 @@ Total: 6760.00`,
     label: "Skiing fall: sprained ankle",
     accident: "Priya Nair twisted her ankle on a ski run and went to urgent care. Nothing is wrong with this bill.",
     patient: { firstName: "Priya", lastName: "Nair", street: "27 Pine Ridge Lane", city: "Denver", state: "CO", zip: "80202" },
-    hospital: { name: alpine, street: "9 Mountain Plaza", city: "Denver", state: "CO", zip: "80205" },
+    hospital: { name: alpine, street: "9 Mountain Plaza", city: "Denver", state: "CO", zip: "80205", lat: 39.74, lng: -104.99 },
     transaction: { id: "scenario-ski-ankle", merchant: alpine, amount: 1145, date: "2026-09-06", category: "healthcare" },
     records: [
       record(alpine, "2026-09-06", "sa-visit", "encounter", "Urgent care visit after skiing fall"),

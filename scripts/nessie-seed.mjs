@@ -38,18 +38,35 @@ async function post(path, body) {
   return created;
 }
 
+async function get(path) {
+  const url = new URL(`${base}${path}`);
+  url.searchParams.set("key", key);
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Nessie GET ${path} failed: ${response.status}`);
+  return response.json();
+}
+
+const save = (id, ids) => { seeded[id] = ids; mkdirSync("data", { recursive: true }); writeFileSync(seedPath, JSON.stringify(seeded, null, 2)); };
+
 for (const scenario of selected) {
   console.log(`\n${scenario.id}: ${scenario.patient.firstName} ${scenario.patient.lastName} -> ${scenario.hospital.name} ($${scenario.transaction.amount})`);
   if (seeded[scenario.id]) { console.log("  already seeded; skipping"); continue; }
   const { patient, hospital, transaction } = scenario;
-  const customer = await post("/customers", { first_name: patient.firstName, last_name: patient.lastName, address: { street_number: patient.street.split(" ")[0], street_name: patient.street.split(" ").slice(1).join(" "), city: patient.city, state: patient.state, zip: patient.zip } });
-  const account = await post(`/customers/${customer._id}/accounts`, { type: "Checking", nickname: `${patient.firstName}'s checking`, rewards: 0, balance: 15000 });
-  const merchant = await post("/merchants", { name: hospital.name, category: ["healthcare"], address: { street_number: hospital.street.split(" ")[0], street_name: hospital.street.split(" ").slice(1).join(" "), city: hospital.city, state: hospital.state, zip: hospital.zip }, geocode: { lat: 0, lng: 0 } });
-  const purchase = await post(`/accounts/${account._id}/purchases`, { merchant_id: merchant._id, medium: "balance", purchase_date: transaction.date, amount: transaction.amount, description: `${hospital.name} patient payment` });
+  const ids = { ...(seeded[`${scenario.id}:partial`] ?? {}) };
+  // Reuse a customer left behind by an interrupted run instead of creating a duplicate.
+  if (apply && !ids.customerId) {
+    const existing = (await get("/customers")).find((c) => c.first_name === patient.firstName && c.last_name === patient.lastName);
+    if (existing) { ids.customerId = existing._id; console.log("  reusing existing customer from an earlier run"); }
+  }
+  const step = async (name, make) => { if (ids[name]) return; ids[name] = (await make())._id; if (apply) save(`${scenario.id}:partial`, ids); };
+  await step("customerId", () => post("/customers", { first_name: patient.firstName, last_name: patient.lastName, address: { street_number: patient.street.split(" ")[0], street_name: patient.street.split(" ").slice(1).join(" "), city: patient.city, state: patient.state, zip: patient.zip } }));
+  await step("accountId", () => post(`/customers/${ids.customerId}/accounts`, { type: "Checking", nickname: `${patient.firstName}'s checking`, rewards: 0, balance: 15000 }));
+  await step("merchantId", () => post("/merchants", { name: hospital.name, category: "healthcare", address: { street_number: hospital.street.split(" ")[0], street_name: hospital.street.split(" ").slice(1).join(" "), city: hospital.city, state: hospital.state, zip: hospital.zip }, geocode: { lat: hospital.lat, lng: hospital.lng } }));
+  if (apply) await get(`/merchants/${ids.merchantId}`); // throws unless the merchant is readable by ID
+  await step("purchaseId", () => post(`/accounts/${ids.accountId}/purchases`, { merchant_id: ids.merchantId, medium: "balance", status: "pending", purchase_date: transaction.date, amount: transaction.amount, description: `${hospital.name} patient payment` }));
   if (apply) {
-    seeded[scenario.id] = { customerId: customer._id, accountId: account._id, merchantId: merchant._id, purchaseId: purchase._id };
-    mkdirSync("data", { recursive: true });
-    writeFileSync(seedPath, JSON.stringify(seeded, null, 2));
+    delete seeded[`${scenario.id}:partial`];
+    save(scenario.id, ids);
     console.log(`  created and saved IDs to ${seedPath}`);
   }
 }
