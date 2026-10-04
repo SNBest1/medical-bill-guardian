@@ -9,12 +9,15 @@ export function normalizeNessiePurchase(purchase: NessiePurchase, merchantName: 
 }
 
 export class NessieBankProvider implements BankProvider {
-  /** Fetches purchases from the configured Nessie sandbox customer. */
+  /** With accountIds, reads only those accounts (a seeded scenario patient); otherwise every account of the configured customer. */
+  constructor(private readonly accountIds?: string[]) {}
+
+  /** Fetches purchases from the configured Nessie sandbox customer or the restricted accounts. */
   async getTransactions(): Promise<Transaction[]> {
     const key = process.env.NESSIE_API_KEY;
     const customer = process.env.NESSIE_CUSTOMER_ID;
     const base = process.env.NESSIE_BASE_URL;
-    if (!key || !customer || !base) throw new Error("Nessie key, customer ID, and HTTPS base URL are required");
+    if (!key || !base || (!customer && !this.accountIds)) throw new Error("Nessie key, customer ID, and HTTPS base URL are required");
     if (new URL(base).protocol !== "https:") throw new Error("Nessie requires an HTTPS endpoint");
     const get = async <T>(path: string): Promise<T> => {
       const url = new URL(`${base.replace(/\/$/, "")}${path}`);
@@ -23,7 +26,7 @@ export class NessieBankProvider implements BankProvider {
       if (!response.ok) throw new Error(`Nessie request failed: ${response.status}`);
       return response.json() as Promise<T>;
     };
-    const accounts = await get<{ _id: string }[]>(`/customers/${encodeURIComponent(customer)}/accounts`);
+    const accounts = this.accountIds ? this.accountIds.map((_id) => ({ _id })) : await get<{ _id: string }[]>(`/customers/${encodeURIComponent(customer!)}/accounts`);
     const purchases = (await Promise.all(accounts.map((account) => get<NessiePurchase[]>(`/accounts/${encodeURIComponent(account._id)}/purchases`)))).flat();
     const merchantIds = [...new Set(purchases.map((purchase) => purchase.merchant_id).filter((id): id is string => Boolean(id)))];
     const merchants = new Map(await Promise.all(merchantIds.map(async (id): Promise<[string, string]> => [id, (await get<{ name: string }>(`/merchants/${encodeURIComponent(id)}`)).name])));

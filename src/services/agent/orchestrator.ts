@@ -7,6 +7,7 @@ import { generateCaseSummary } from "./summary";
 import { parseItemizedBill } from "../communications/parse-bill";
 import { comparePrices, loadPriceReferences } from "../reconciliation/pricing";
 import { assessPatientBalance } from "../reconciliation/insurance";
+import { isDemoTransaction } from "../scenarios";
 
 /** A provider contact attempt failed after being sent; it may or may not have reached the provider, so retrying automatically is unsafe. */
 export class ContactAmbiguousError extends Error {}
@@ -21,7 +22,7 @@ function record(caseData: MedicalBillCase, action: string, tool: string, inputSu
 /** Creates a case from a qualifying bank transaction. */
 export function createCase(transaction: Transaction): MedicalBillCase {
   const now = new Date().toISOString();
-  return { id: transaction.id === "nessie-demo-4820" ? "CASE-4821" : `CASE-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: "DETECTED", transaction, provider: { name: transaction.merchant }, medicalRecords: [], bill: null, findings: [], insurance: transaction.id === "nessie-demo-4820" ? { coverage: "SELF_PAY", network: "UNKNOWN", claimStatus: "UNKNOWN" } : undefined, communications: [], timeline: [{ id: crypto.randomUUID(), timestamp: now, title: "Hospital payment detected", detail: `$${transaction.amount.toLocaleString()} payment to ${transaction.merchant}`, source: "Bank transaction", status: "complete" }], auditLog: [{ id: crypto.randomUUID(), timestamp: now, action: "CREATE_CASE", tool: "getTransaction", inputSummary: transaction.id, outputSummary: "Case opened", status: "SUCCESS" }], resolution: null, summary: null, createdAt: now, updatedAt: now };
+  return { id: transaction.id === "nessie-demo-4820" ? "CASE-4821" : `CASE-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: "DETECTED", transaction, provider: { name: transaction.merchant }, medicalRecords: [], bill: null, findings: [], insurance: isDemoTransaction(transaction) ? { coverage: "SELF_PAY", network: "UNKNOWN", claimStatus: "UNKNOWN" } : undefined, communications: [], timeline: [{ id: crypto.randomUUID(), timestamp: now, title: "Hospital payment detected", detail: `$${transaction.amount.toLocaleString()} payment to ${transaction.merchant}`, source: "Bank transaction", status: "complete" }], auditLog: [{ id: crypto.randomUUID(), timestamp: now, action: "CREATE_CASE", tool: "getTransaction", inputSummary: transaction.id, outputSummary: "Case opened", status: "SUCCESS" }], resolution: null, summary: null, createdAt: now, updatedAt: now };
 }
 
 /** Retrieves records, requests a bill, and waits for the provider's statement. */
@@ -99,7 +100,7 @@ export async function reviewCase(current: MedicalBillCase, communications: Commu
   if (next.insurance?.coverage === "INSURED" && response.resolution.adjustment > 0) {
     next.financialReview = { status: "REPROCESSING_REQUIRED", reasons: ["The provider corrected gross charges. Obtain a revised insurer EOB and provider patient balance before determining the patient's refund; deductible, copay, coinsurance, secondary payments, and benefit accumulators may change."] };
     delete next.recovery;
-  } else if (response.resolution.adjustment > 0 && process.env.DEMO_MODE !== "false" && next.transaction.id === "nessie-demo-4820") {
+  } else if (response.resolution.adjustment > 0 && process.env.DEMO_MODE !== "false" && isDemoTransaction(next.transaction)) {
     next.recovery = { status: "REFUND_PENDING", amount: response.resolution.adjustment, confirmation: `DEMO-${current.bill.invoiceId}-REFUND`, simulated: true };
   }
   record(next, "REQUEST_REVIEW", "requestBillingReview", `${next.findings.filter((finding) => finding.action === "REQUEST_REVIEW").length} findings`, response.resolution.result, "Hospital billing responded", response.resolution.explanation, "Hospital billing");
@@ -112,12 +113,12 @@ export function receiveDemoRefund(current: MedicalBillCase): MedicalBillCase {
   if (process.env.DEMO_MODE === "false") throw new Error("Synthetic refund credits require demo mode");
   if (!current.recovery?.simulated || !current.resolution || current.status !== "USER_NOTIFIED") throw new Error("No completed synthetic review is awaiting a refund");
   if (current.recovery.status === "REFUND_RECEIVED") return current;
-  if (current.transaction.id !== "nessie-demo-4820" || current.recovery.amount !== current.resolution.adjustment || current.recovery.amount !== 700) throw new Error("Refund does not match the seeded payment correction");
+  if (!isDemoTransaction(current.transaction) || current.recovery.amount !== current.resolution.adjustment) throw new Error("Refund does not match the seeded payment correction");
   const next = structuredClone(current);
   next.recovery!.status = "REFUND_RECEIVED";
-  next.recovery!.creditTransactionId = "demo-credit-700";
-  record(next, "VERIFY_DEMO_CREDIT", "matchSyntheticCredit", next.transaction.id, "Synthetic $700 credit matched", "Demo refund received", "A synthetic $700 credit matched the approved correction. No real money moved.", "Synthetic bank credit");
-  next.summary = `${next.summary ?? ""} A synthetic $700 refund credit has now been matched in the demo; no real money moved.`;
+  next.recovery!.creditTransactionId = `demo-credit-${next.recovery!.amount}`;
+  record(next, "VERIFY_DEMO_CREDIT", "matchSyntheticCredit", next.transaction.id, `Synthetic $${next.recovery!.amount.toLocaleString()} credit matched`, "Demo refund received", `A synthetic $${next.recovery!.amount.toLocaleString()} credit matched the approved correction. No real money moved.`, "Synthetic bank credit");
+  next.summary = `${next.summary ?? ""} A synthetic $${next.recovery!.amount.toLocaleString()} refund credit has now been matched in the demo; no real money moved.`;
   return next;
 }
 

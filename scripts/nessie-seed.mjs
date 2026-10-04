@@ -1,6 +1,6 @@
 import { loadEnvFile } from "node:process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { scenarios } from "../src/services/scenarios.ts";
+import { scenarios } from "../src/services/scenario-data.ts";
 try { loadEnvFile(".env.local"); } catch {}
 try { loadEnvFile(".env"); } catch {}
 

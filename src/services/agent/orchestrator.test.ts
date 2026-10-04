@@ -79,7 +79,7 @@ describe("case workflow", () => {
     const provider = new MockCommunicationProvider(0);
     const analyzed = await analyzeCase(await investigateCase(createCase(demoTransaction), new MockMedicalRecordProvider(), provider), provider);
     const notified = await notifyCase(await reviewCase(analyzed, provider, true), provider);
-    notified.transaction.id = "unrelated-payment";
+    notified.transaction = { ...notified.transaction, id: "unrelated-payment", merchant: "Unrelated Clinic" };
     expect(() => receiveDemoRefund(notified)).toThrow(/seeded payment/i);
   });
 

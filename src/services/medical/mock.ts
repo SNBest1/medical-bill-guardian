@@ -1,11 +1,12 @@
-import { demoRecords } from "../demo";
+import { scenarioForTransaction } from "../scenarios";
 import type { Transaction } from "../../types/domain";
 import type { MedicalRecordProvider } from "./provider";
 
 export class MockMedicalRecordProvider implements MedicalRecordProvider {
-  /** Returns patient-authorized demo records near the payment date. */
+  /** Returns the patient-authorized synthetic records for the payment's scenario. */
   async getMedicalRecords(transaction: Transaction) {
-    if (transaction.id !== "nessie-demo-4820") throw new Error("The demo fixture supports only the seeded University Hospital payment");
-    return demoRecords;
+    const scenario = scenarioForTransaction(transaction);
+    if (!scenario) throw new Error("The demo fixture supports only the seeded scenario payments");
+    return scenario.records;
   }
 }
