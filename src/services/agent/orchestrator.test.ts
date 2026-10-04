@@ -3,6 +3,7 @@ import { createCase, investigateCase, requestItemizedBill, analyzeCase, reviewCa
 import { demoTransaction, demoStatement } from "../demo";
 import { MockMedicalRecordProvider } from "../medical/mock";
 import { MockCommunicationProvider } from "../communications/mock";
+import type { ItemizedBillRequestContext } from "../communications/provider";
 
 describe("case workflow", () => {
   it("requests a bill, waits for delivery, then pauses for authorization", async () => {
@@ -113,7 +114,7 @@ describe("authorized hospital call checkpoint", () => {
     const base = new MockCommunicationProvider(Number.POSITIVE_INFINITY);
     return Object.assign(Object.create(base), {
       requiresCallAuthorization: true,
-      async requestItemizedBill(context: { providerName: string }) { calls.count += 1; return { ...(await base.requestItemizedBill(context)), result: "Fish call queued · session sess-9" }; },
+      async requestItemizedBill(context: ItemizedBillRequestContext) { calls.count += 1; return { ...(await base.requestItemizedBill(context)), result: "Fish call queued · session sess-9" }; },
     }) as MockCommunicationProvider & { requiresCallAuthorization: true };
   };
 

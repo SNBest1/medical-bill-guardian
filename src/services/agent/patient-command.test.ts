@@ -90,3 +90,24 @@ describe("handlePatientCommand", () => {
     expect((await handlePatientCommand(store, command("Maya"), providers(), { replyEnabled: true, patientPhone: patient, send })).kind).toBe("duplicate");
   });
 });
+
+describe("patient reply text", () => {
+  const reply = async (communications: MockCommunicationProvider) => {
+    const store = new CaseStore(":memory:");
+    const { sent, send } = fakeSender();
+    await handlePatientCommand(store, command("investigate Maya's hospital bill"), { ...providers(), communications }, { replyEnabled: true, patientPhone: patient, send });
+    return { sent, saved: store.list()[0] };
+  };
+  it("keeps the started reply when no call needs authorization", async () => {
+    const { sent, saved } = await reply(new MockCommunicationProvider(Number.POSITIVE_INFINITY));
+    expect(saved.status).toBe("WAITING_FOR_BILL");
+    expect(sent).toEqual([{ phone: patient, text: "Starting the investigation into Maya's hospital bill now." }]);
+  });
+  it("says the call still needs authorization when the case pauses for a real call", async () => {
+    const { sent, saved } = await reply(Object.assign(new MockCommunicationProvider(Number.POSITIVE_INFINITY), { requiresCallAuthorization: true }));
+    expect(saved.status).toBe("REQUESTING_BILL");
+    expect(saved.communications).toHaveLength(0);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].text).toBe("Started the investigation into Maya's hospital bill. Open the case page to authorize the call to hospital billing.");
+  });
+});

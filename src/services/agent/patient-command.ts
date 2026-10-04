@@ -11,6 +11,8 @@ export type TextSender = (phone: string, text: string) => Promise<string>;
 
 /** Fixed templates only: arbitrary patient text is never echoed back. */
 function replyText(outcome: Awaited<ReturnType<typeof runAgentCommand>>): string {
+  // A real hospital call needs the patient's explicit approval on the case page, so say so instead of implying it was placed.
+  if (outcome.kind === "started" && outcome.case.status === "REQUESTING_BILL") return `Started the investigation into ${outcome.scenario.patient.firstName}'s hospital bill. Open the case page to authorize the call to hospital billing.`;
   if (outcome.kind === "started") return `Starting the investigation into ${outcome.scenario.patient.firstName}'s hospital bill now.`;
   const names = (outcome.kind === "ambiguous" ? outcome.options : scenarios).map((scenario) => scenario.patient.firstName);
   return `Which bill: ${names.join(" or ")}?`;
