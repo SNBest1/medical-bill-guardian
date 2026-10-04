@@ -4,6 +4,7 @@ import { ScenarioFinchNodeProvider } from "../services/medical/scenario-finchnod
 import { FinchNodeProvider } from "../services/medical/finchnode";
 import { seededNessieAccount } from "./nessie-seed";
 import { FishDemoCommunicationProvider } from "../services/communications/fish-demo";
+import { fishConfigFromEnv } from "../services/communications/fish-call";
 import { MockCommunicationProvider } from "../services/communications/mock";
 
 /** Selects local demo adapters unless real integrations are explicitly enabled. */
@@ -19,12 +20,8 @@ export const bankProvider = (scenarioId?: string) => {
 export const medicalProvider = () => demoMode() ? new ScenarioFinchNodeProvider() : new FinchNodeProvider();
 export const communicationProvider = () => {
   if (!demoMode()) throw new Error("A Relay or Photon adapter must be configured before live provider contact");
-  const fishConfig = {
-    apiKey: process.env.FISH_API_KEY?.trim() ?? "",
-    agentId: process.env.FISH_AGENT_ID?.trim() ?? "",
-    phoneNumberId: process.env.FISH_PHONE_NUMBER_ID?.trim() ?? "",
-    toNumber: process.env.FISH_TEST_TO_NUMBER?.trim() ?? "",
-  };
-  if (Object.values(fishConfig).every(Boolean)) return new FishDemoCommunicationProvider(fishConfig);
-  return new MockCommunicationProvider(process.env.DEMO_BILL_DELIVERY === "manual" ? Number.POSITIVE_INFINITY : 750);
+  const billDelayMs = process.env.DEMO_BILL_DELIVERY === "manual" ? Number.POSITIVE_INFINITY : 750;
+  const fish = fishConfigFromEnv();
+  if (fish) return new FishDemoCommunicationProvider(fish, fetch, new MockCommunicationProvider(billDelayMs));
+  return new MockCommunicationProvider(billDelayMs);
 };

@@ -8,6 +8,8 @@ export interface ItemizedBillRequestContext {
 }
 
 export interface CommunicationProvider {
+  /** True when requesting the bill places a real call, so the orchestrator must pause for user authorization first. */
+  readonly requiresCallAuthorization?: boolean;
   requestItemizedBill(context: ItemizedBillRequestContext): Promise<Communication>;
   getItemizedBill(providerName: string, request: Communication): Promise<string | null>;
   requestBillingReview(providerName: string, invoiceId: string, findings: Finding[], insurance?: InsuranceContext): Promise<{ resolution: Resolution; communication: Communication }>;
