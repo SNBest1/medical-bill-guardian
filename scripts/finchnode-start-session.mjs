@@ -19,7 +19,7 @@ const scenario = process.argv[2] || "baseline-adult";
 const created = await fetch(`${base}/connect/sessions`, {
   method: "POST",
   headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-  body: JSON.stringify({ externalId: `medical-bill-guardian-${Date.now()}`, categories: ["encounters", "medications", "labs", "documents"] })
+  body: JSON.stringify({ externalId: `medical-bill-guardian-${Date.now()}`, categories: ["allergies", "conditions", "demographics", "encounters", "immunizations", "labs", "medications", "vitals"] })
 });
 if (!created.ok) throw new Error(`FinchNode session creation failed: ${created.status}`);
 const session = await created.json();

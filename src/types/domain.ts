@@ -33,5 +33,11 @@ export interface RecordSource {
   counts?: Record<string, number>;
   /** Why the saved copy was used instead of a live pull. Present only on a fallback. */
   fallbackReason?: string;
+  /** Which source actually supplied the records: the authenticated consented sandbox patient, the keyless open demo API, or the saved copy. */
+  tier?: "sandbox" | "open-demo" | "saved-copy";
+  /** Date (YYYY-MM-DD) the sandbox patient's consent was recorded. Present only on the sandbox tier. */
+  consentedAt?: string;
+  /** Short reason the consented sandbox patient was not used. Present only when a lower tier supplied the records. */
+  sandboxNote?: string;
 }
 export interface MedicalBillCase { id: string; scenarioId?: string; status: CaseStatus; transaction: Transaction; provider: { name: string }; medicalRecords: MedicalRecord[]; recordSource?: RecordSource; reading?: BillReading; bill: ItemizedBill | null; findings: Finding[]; insurance?: InsuranceContext; financialReview?: FinancialReview; communications: Communication[]; timeline: TimelineEvent[]; auditLog: AuditEntry[]; resolution: Resolution | null; recovery?: Recovery; summary: string | null; createdAt: string; updatedAt: string }

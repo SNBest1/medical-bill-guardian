@@ -103,6 +103,8 @@ Status as of 2026-10-03. Checked items are implemented in the repository; unchec
 - [x] Bill-link matching tells the three same-hospital patients apart by the PDF's patient name, then invoice number, and fails visibly when still ambiguous.
 - [ ] Set `DEMO_HOSPITAL_PHONE` and restart the app and receiver, then exercise the link path against live Spectrum/iMessage (verified only with fakes and a local fake PDF server).
 - [ ] Host the three new PDFs (`morgan-rivera-ns-71802.pdf`, `harriet-lindqvist-ns-58417.pdf`, `theo-abernathy-ns-33096.pdf`) at the allowlisted host and set `GUARDIAN_BILL_HOSTS` to match.
+- [x] Three-tier record source with honest labels: consented FinchNode sandbox patient (`FINCHNODE_API_KEY`, matched by persona label), then the keyless open demo API, then the saved copy; `scripts/finchnode-status.mjs` reports readiness. Verified live for Morgan only.
+- [ ] Wait for the Harriet (polypharmacy-senior) and Theo (pediatric-asthma) sandbox Connect sessions to complete; until then they use the open demo API tier.
 - [ ] Seed the three new patients into Nessie (`node scripts/nessie-seed.mjs --apply`; dry run reviewed, not applied). Earlier seeded entries for the old accident scenarios are ignored.
 - [ ] Cost review of the generated chargemaster-style prices is a later phase; the amounts are fictional.
 - [ ] Bill links are accepted only from the local receiver; the public signed webhook still accepts only the exact-grammar statement.

@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { DemoMedicalProvider, FALLBACK_LABEL, FinchNodeDemoProvider, LIVE_LABEL } from "./finchnode-demo";
+import { FinchNodeSandboxProvider } from "./finchnode-sandbox";
 import { savedSnapshot } from "./finchnode-fixtures";
 import { describeCounts, describeRecordSource } from "./record-source";
 import { legacyScenario, scenarios } from "../scenarios";
 import { analyzeCase, createCase, investigateCase, notifyCase, reviewCase } from "../agent/orchestrator";
 import { MockCommunicationProvider } from "../communications/mock";
 
+/** No API key, so these tests exercise the open-demo and saved-copy tiers only and never reach the network. */
+const noSandbox = new FinchNodeSandboxProvider(() => ({}));
 const now = () => new Date("2026-10-04T12:00:00Z");
 /** Serves the saved real response for whatever subject is requested, as the public demo API would. */
 const serving = () => vi.fn<typeof fetch>(async (input) => {
@@ -95,7 +98,7 @@ describe("FinchNodeDemoProvider: labeled fallback", () => {
 describe("DemoMedicalProvider routing", () => {
   it("pulls for FinchNode patients but never calls the network for the original rehearsal case", async () => {
     const fetcher = serving();
-    const provider = new DemoMedicalProvider(new FinchNodeDemoProvider(fetcher, undefined, now));
+    const provider = new DemoMedicalProvider(new FinchNodeDemoProvider(fetcher, undefined, now), undefined, noSandbox);
     expect((await provider.retrieve(scenarios[1].transaction)).source.live).toBe(true);
     expect(fetcher).toHaveBeenCalledTimes(1);
     const rehearsal = await provider.retrieve(legacyScenario.transaction);
@@ -105,7 +108,7 @@ describe("DemoMedicalProvider routing", () => {
 });
 
 describe("case records the retrieval honestly", () => {
-  const investigate = (fetcher: typeof fetch, scenario = morgan) => investigateCase(createCase(scenario.transaction), new DemoMedicalProvider(new FinchNodeDemoProvider(fetcher, { timeoutMs: 8000, retries: 1 }, now)), new MockCommunicationProvider(Number.POSITIVE_INFINITY));
+  const investigate = (fetcher: typeof fetch, scenario = morgan) => investigateCase(createCase(scenario.transaction), new DemoMedicalProvider(new FinchNodeDemoProvider(fetcher, { timeoutMs: 8000, retries: 1 }, now), undefined, noSandbox), new MockCommunicationProvider(Number.POSITIVE_INFINITY));
 
   it("a live pull is stated in the audit log and timeline with time, subject, and counts", async () => {
     const next = await investigate(serving());
@@ -138,7 +141,7 @@ describe("each FinchNode patient end to end with a live pull (mocked response)",
   for (const scenario of scenarios) {
     it(`${scenario.id}: records, bill, review, and outcome`, async () => {
       const comms = new MockCommunicationProvider(0);
-      const medical = new DemoMedicalProvider(new FinchNodeDemoProvider(serving(), undefined, now));
+      const medical = new DemoMedicalProvider(new FinchNodeDemoProvider(serving(), undefined, now), undefined, noSandbox);
       const investigated = await investigateCase(createCase(scenario.transaction), medical, comms);
       expect(investigated.status).toBe("WAITING_FOR_BILL");
       expect(investigated.medicalRecords.length).toBeGreaterThan(5 - 1);

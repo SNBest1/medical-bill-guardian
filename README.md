@@ -99,6 +99,12 @@ The picker offers FinchNode's own synthetic patients, seen at one hospital, Nort
 
 Service dates are fixed in FinchNode's data (not relative to today). Commands that work in the web box or by text: a name (`Morgan`, `Rivera`, `Harriet`, `Lindqvist`, `Theo`, `Abernathy`) or a condition word (wellness/diabetes, kidney/heart, asthma/child). "Northstar" is shared by all three, so it is treated as ambiguous.
 
+Where each patient's records come from, best first (the case, audit log, timeline, Records panel, and waiting screen record which one actually happened):
+1. **Consented sandbox patient** (needs `FINCHNODE_API_KEY`, optionally `FINCHNODE_BASE_URL`): the app finds the patient in `GET /users` by its persona label ("Baseline adult, age 38", "Polypharmacy, age 78", "Pediatric asthma, age 9"), never from a request, and reads `/users/{id}/records`. Label: "Retrieved live from FinchNode sandbox with patient consent (synthetic patient, consent recorded YYYY-MM-DD)". Only Morgan's patient exists today; Harriet's and Theo's Connect sessions are still syncing.
+2. **Keyless open demo API**: "Retrieved live from FinchNode public demo API (synthetic patient)", plus the reason the sandbox patient was not used (for example it is still syncing).
+3. **Saved copy**: "FinchNode unreachable - using the saved copy of this synthetic patient".
+`recordSource.tier` is `sandbox`, `open-demo`, or `saved-copy`. `node scripts/finchnode-status.mjs` (read-only, prints no key) shows which patients exist and which tier the app would use now.
+
 Regenerate and host the bills: `node scripts/generate-statements.mjs` (live pull; `--check` verifies the checked-in `src/services/scenario-statements.generated.ts`, `--offline` uses the saved fixtures), then `node scripts/make-bills.mjs` (headless Chrome) writes `public/bills/morgan-rivera-ns-71802.pdf`, `harriet-lindqvist-ns-58417.pdf`, and `theo-abernathy-ns-33096.pdf`. Seed Nessie with `node scripts/nessie-seed.mjs` (dry run) and, only when you intend to, `--apply`; it creates one customer and account per patient and one shared Northstar Health System merchant.
 
 ### Text the agent (Photon patient command)

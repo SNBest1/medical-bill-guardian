@@ -27,9 +27,9 @@ export function RecordSourceSummary({ source, total }: { source: RecordSource; t
   const counts = Object.entries(source.counts ?? {}).filter(([, count]) => count > 0);
   return <div className="gx-source" data-live={source.live ? "true" : "false"}>
     <p className="gx-source-label">{source.fallbackReason ? <TriangleAlert size={13}/> : null}{source.label}</p>
-    {(source.subject || source.organization || source.retrievedAt) && <p className="gx-source-meta">{[source.subject && `Subject ${source.subject}`, source.organization, source.retrievedAt && `${source.live ? "Retrieved" : "Saved copy read"} ${clock(source.retrievedAt)}`].filter(Boolean).join(" · ")}</p>}
+    {(source.subject || source.organization || source.retrievedAt) && <p className="gx-source-meta">{[source.subject && `Subject ${source.subject}`, source.organization, source.retrievedAt && `${source.live ? "Retrieved" : "Saved copy read"} ${clock(source.retrievedAt)}`, source.consentedAt && `Consent recorded ${source.consentedAt}`].filter(Boolean).join(" · ")}</p>}
     {counts.length > 0 && <ul className="gx-source-counts" aria-label={`${total} records kept for this visit`}>{counts.map(([category, count]) => <li key={category}><b>{count}</b> {categoryLabel(category, count)}</li>)}</ul>}
-    {source.fallbackReason && <p className="gx-source-meta">Live pull failed ({source.fallbackReason}); these records are the saved copy of the same synthetic patient.</p>}
+    {source.sandboxNote && <p className="gx-source-meta">Consented sandbox patient not used: {source.sandboxNote}.</p>}{source.fallbackReason && <p className="gx-source-meta">Live pull failed ({source.fallbackReason}); these records are the saved copy of the same synthetic patient.</p>}
   </div>;
 }
 

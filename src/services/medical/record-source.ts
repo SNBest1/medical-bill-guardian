@@ -37,6 +37,8 @@ export function describeRecordSource(source: RecordSource, total: number): strin
   if (source.retrievedAt) parts.push(`${source.live ? "retrieved" : "saved copy read"} ${clock(source.retrievedAt)}`);
   const counts = describeCounts(source.counts);
   if (counts) parts.push(counts);
+  if (source.consentedAt) parts.push(`consent recorded ${source.consentedAt}`);
+  if (source.sandboxNote) parts.push(`sandbox patient not used: ${source.sandboxNote}`);
   if (source.fallbackReason) parts.push(`reason: ${source.fallbackReason}`);
   return parts.join(" · ");
 }
