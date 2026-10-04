@@ -5,9 +5,9 @@ import { BillParseError, parsePdfBill } from "../communications/parse-pdf-bill";
 import { PdfReadError, extractPdfText } from "../communications/pdf-text";
 import { SafeFetchError, billFetchOptions, fetchBillPdf, redactUrl, validateBillUrl } from "../communications/safe-fetch";
 import { reconcile } from "../reconciliation/reconcile";
-import { getScenario } from "../scenarios";
+import { getScenario, statementInvoice } from "../scenarios";
 import { CaseBusyError } from "./case-operation";
-import { receiveParsedBill } from "./orchestrator";
+import { receiveParsedBill, scenarioIdOf } from "./orchestrator";
 
 export interface BillLinkDeps {
   /** Throws SafeFetchError when the link is not acceptable; returns the URL that would be fetched. */
@@ -93,11 +93,13 @@ class ReadingSink {
 }
 
 const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+const scenarioOf = (candidate: MedicalBillCase) => { const id = scenarioIdOf(candidate); return id ? getScenario(id) : undefined; };
 function patientMatches(candidate: MedicalBillCase, bill: ItemizedBill): boolean {
-  const scenario = candidate.scenarioId ? getScenario(candidate.scenarioId) : undefined;
+  const scenario = scenarioOf(candidate);
   if (!bill.patient || !scenario) return true;
   return sameName(bill.patient, `${scenario.patient.firstName} ${scenario.patient.lastName}`);
 }
+const invoiceMatches = (candidate: MedicalBillCase, bill: ItemizedBill): boolean => { const scenario = scenarioOf(candidate); return Boolean(scenario) && statementInvoice(scenario!).toLowerCase() === bill.invoiceId.toLowerCase(); };
 
 const audit = (current: MedicalBillCase, action: string, tool: string, input: string, output: string, status: "SUCCESS" | "FAILED") => {
   current.auditLog.push({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), action, tool, inputSummary: input, outputSummary: output, status });
@@ -151,9 +153,14 @@ export async function processBillLink(store: CaseStore, link: HospitalBillLink, 
     if (bill.patient) await sink.emit("patient", `Patient: ${bill.patient}`);
     await sink.emit("date", `Service date ${bill.items[0].serviceDate}`);
 
-    const matches = waiting.filter((candidate) => candidate.provider.name === bill.provider && patientMatches(candidate, bill));
+    // Several patients can wait on the same hospital: narrow by the patient name printed on the PDF, then by its invoice number, and refuse to guess if that is still not one case.
+    const atProvider = waiting.filter((candidate) => candidate.provider.name === bill.provider);
+    let matches = atProvider.filter((candidate) => patientMatches(candidate, bill));
+    if (matches.length > 1) { const byInvoice = matches.filter((candidate) => invoiceMatches(candidate, bill)); if (byInvoice.length === 1) matches = byInvoice; }
     if (matches.length !== 1) {
-      const text = matches.length ? `This bill matches ${matches.length} waiting cases, so it was not applied` : `This bill is from ${bill.provider}, which does not match a case waiting for a bill`;
+      const text = matches.length ? `This bill matches ${matches.length} waiting cases at ${bill.provider} (patient and invoice number do not pick one), so it was not applied`
+        : atProvider.length ? `This bill names ${bill.patient ?? "no patient"}, who does not match any case waiting at ${bill.provider}, so it was not applied`
+        : `This bill is from ${bill.provider}, which does not match a case waiting for a bill`;
       return await fail(text, undefined, "UNMATCHED", "unmatched");
     }
     const match = matches[0];

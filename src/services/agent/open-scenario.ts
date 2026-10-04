@@ -20,7 +20,7 @@ export async function openScenarioCase(store: CaseStore, scenario: Scenario, ban
     const selected = structuredClone(opened);
     selected.scenarioId = scenario.id;
     selected.auditLog.push({ id: crypto.randomUUID(), timestamp: now, action: "SELECT_SCENARIO", tool: "selectScenario", inputSummary: scenario.id, outputSummary: `${scenario.patient.firstName} ${scenario.patient.lastName} · ${scenario.hospital.name}`, status: "SUCCESS" });
-    selected.timeline.push({ id: crypto.randomUUID(), timestamp: now, title: "Accident selected", detail: `${scenario.label}. ${scenario.accident}`, source: "Patient", status: "complete" });
+    selected.timeline.push({ id: crypto.randomUUID(), timestamp: now, title: "Patient selected", detail: `${scenario.label}. ${scenario.story}`, source: "Patient", status: "complete" });
     selected.updatedAt = now;
     store.save(selected);
     return { case: selected, resumed: false };

@@ -5,7 +5,7 @@ import { parseItemizedBill } from "./parse-bill";
 import { extractPdfText, PdfReadError } from "./pdf-text";
 import { BillParseError, longDateToIso, parsePdfBill } from "./parse-pdf-bill";
 
-const files: Record<string, string> = { "bike-wrist": "maya-ortiz-lr-20931.pdf", "car-concussion": "daniel-brooks-st-77140.pdf", "ski-ankle": "priya-nair-au-30518.pdf" };
+const files: Record<string, string> = { "morgan-wellness": "morgan-rivera-ns-71802.pdf", "harriet-kidney": "harriet-lindqvist-ns-58417.pdf", "theo-asthma": "theo-abernathy-ns-33096.pdf" };
 const pdfBytes = (scenarioId: string) => readFileSync(new URL(`../../../public/bills/${files[scenarioId]}`, import.meta.url));
 
 describe("PDF text extraction and bill parsing", () => {
@@ -23,37 +23,44 @@ describe("PDF text extraction and bill parsing", () => {
     expect(bill.items.map(({ description, code, amount, serviceDate }) => ({ description, code, amount, serviceDate }))).toEqual(expected.items.map(({ description, code, amount, serviceDate }) => ({ description, code, amount, serviceDate })));
   });
 
+  it.each(scenarios.map((scenario) => [scenario.id, scenario] as const))("reads every %s charge code and amount from the PDF text layer", async (_id, scenario) => {
+    const { text } = await extractPdfText(pdfBytes(scenario.id));
+    const bill = parsePdfBill(text);
+    expect(bill.items.every((item) => /^[A-Z]?\d{4,5}$/.test(item.code ?? ""))).toBe(true);
+    expect(bill.items.reduce((sum, item) => sum + item.amount, 0)).toBeCloseTo(scenario.transaction.amount, 2);
+  });
+
   it("rejects non-PDF bytes", async () => {
     await expect(extractPdfText(Buffer.from("not a pdf at all"))).rejects.toBeInstanceOf(PdfReadError);
   });
 });
 
-const good = `Lakeside Regional Medical Center
+const good = `Northstar Health System
 ITEMIZED STATEMENT
-Invoice Number: LR-1
-Patient Maya Ortiz Invoice Number LR-1
-Service Date September 14, 2026
+Invoice Number: NS-1
+Patient Morgan Rivera Invoice Number NS-1
+Service Date July 18, 2026
 ITEMIZED CHARGES
 # DESCRIPTION CODE AMOUNT
-1 Emergency room 99284 $1,050.00
-2 Wrist X-ray — $380.00
+1 Annual wellness visit 99395 $425.00
+2 Venipuncture — $25.00
 Insurance adjustments $0.00
-Patient responsibility $1,430.00
-Total charges $1,430.00`;
+Patient responsibility $450.00
+Total charges $450.00`;
 
 describe("parsePdfBill on malformed input", () => {
   it("parses a minimal well-formed statement and tolerates reflowed whitespace", () => {
     expect(parsePdfBill(good).items).toHaveLength(2);
-    expect(parsePdfBill(good.replace(/\n/g, "\r\n").replace(/ {1}/g, "  ")).total).toBe(1430);
+    expect(parsePdfBill(good.replace(/\n/g, "\r\n").replace(/ {1}/g, "  ")).total).toBe(450);
   });
 
   it.each([
     ["empty text", ""],
     ["no invoice number", good.replace(/Invoice Number[^\n]*\n/g, "")],
-    ["bad service date", good.replace("September 14, 2026", "Septober 40, 2026")],
-    ["impossible calendar date", good.replace("September 14, 2026", "February 30, 2026")],
+    ["bad service date", good.replace("July 18, 2026", "Septober 40, 2026")],
+    ["impossible calendar date", good.replace("July 18, 2026", "February 30, 2026")],
     ["missing total", good.replace(/Total charges.*$/m, "")],
-    ["total does not equal the charges", good.replace("Total charges $1,430.00", "Total charges $1,500.00")],
+    ["total does not equal the charges", good.replace("Total charges $450.00", "Total charges $500.00")],
     ["no charge rows", good.replace(/^[12] .*$/gm, "")],
     ["only a heading", "ITEMIZED STATEMENT"]
   ])("fails visibly on %s", (_name, text) => {

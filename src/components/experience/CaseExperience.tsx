@@ -10,7 +10,7 @@ import { PriceCatalog } from "../PriceCatalog";
 import { StatementInbox } from "../StatementInbox";
 import { CaseStage } from "./CaseStage";
 import { ReviewConversation } from "./ReviewConversation";
-import { RecordsPanel } from "./RecordsPanel";
+import { RecordsPanel, RecordSourceSummary } from "./RecordsPanel";
 import { CallStatusLines, CallingBilling } from "./CallingBilling";
 import { AuthorizeCall } from "./AuthorizeCall";
 import { BillScan, ReadingPanel } from "./ReadingPanel";
@@ -77,7 +77,7 @@ export function CaseExperience({ id, demo }: { id: string; demo: boolean }) {
 
           {activeBeat === "collecting" && view.awaitingCallAuth && <AuthorizeCall caseData={caseData} busy={busy} error={error} onAuthorize={() => void action("request-bill", { authorized: true })} />}
 
-          {activeBeat === "collecting" && !view.awaitingCallAuth && <div className="gx-beat-copy"><span className="gx-kicker">CALLING HOSPITAL BILLING</span><h1>Waiting on<br/>the hospital.</h1><p>Guardian matched the payment to a medical encounter and asked billing for the itemized statement. The case continues the moment the hospital texts it.</p>{pollStalled ? <div className="gx-waiting gx-waiting-stalled"><CircleAlert size={20}/><div><strong>Checking for the bill stopped after repeated errors</strong><span>{error || "The statement could not be checked."}</span></div><button className="gx-secondary" onClick={retryPoll}>Check again</button></div> : <CallStatusLines caseData={caseData} />}{caseData.reading?.failed && <ReadingPanel reading={caseData.reading} />}{demo && view.isWaiting && <StatementInbox id={id} onReceived={() => window.location.reload()} />}</div>}
+          {activeBeat === "collecting" && !view.awaitingCallAuth && <div className="gx-beat-copy"><span className="gx-kicker">CALLING HOSPITAL BILLING</span><h1>Waiting on<br/>the hospital.</h1><p>Guardian matched the payment to a medical encounter and asked billing for the itemized statement. The case continues the moment the hospital texts it.</p>{pollStalled ? <div className="gx-waiting gx-waiting-stalled"><CircleAlert size={20}/><div><strong>Checking for the bill stopped after repeated errors</strong><span>{error || "The statement could not be checked."}</span></div><button className="gx-secondary" onClick={retryPoll}>Check again</button></div> : <CallStatusLines caseData={caseData} />}{caseData.recordSource?.subject && <RecordSourceSummary source={caseData.recordSource} total={caseData.medicalRecords.length} />}{caseData.reading?.failed && <ReadingPanel reading={caseData.reading} />}{demo && view.isWaiting && <StatementInbox id={id} onReceived={() => window.location.reload()} />}</div>}
 
           {activeBeat === "reading" && caseData.reading && <div className="gx-beat-copy gx-reading-copy"><span className="gx-kicker">THE HOSPITAL TEXTED THE BILL</span><h1>Reading it<br/>line by line.</h1><p>Guardian downloads the PDF, understands it, and checks every charge against the records it retrieved.</p><ReadingPanel reading={caseData.reading} />{caseData.reading.done && (caseData.status === "REVIEW_REQUIRED" || caseData.status === "RESOLVED") && <button className="gx-primary" onClick={() => setPresentationBeat(caseData.status === "RESOLVED" ? "outcome" : "evidence")}>See what Guardian found <ArrowRight size={18}/></button>}</div>}
 
