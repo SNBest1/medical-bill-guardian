@@ -4,7 +4,7 @@ Date: 2026-10-03. Branch: `integration/receipt-spacetime-email` from `origin/fea
 
 ## Intent and assumptions
 
-The receipt trace branch supplies the patient-facing presentation, the SpacetimeDB branch supplies case state and owner-filtered storage, and the guardian branch supplies the evidence, PDF, insurance, and billing-review concepts. The original branches have incompatible Next.js and Vite application shells, so this is a selective port rather than a Git merge of every file. The result must remain a reliable synthetic demo when Nessie, FinchNode, Resend, or the provider mailbox is unavailable. Resend is the selected HTTP email sender; `ai@nipunsaini.com` is the reply address. The user named `nipun.saini9@gmail.com` as the test billing recipient and has a Resend API key; the verified sender address and key must be configured locally before real delivery.
+The receipt trace branch supplies the patient-facing presentation, the SpacetimeDB branch supplies case state and owner-filtered storage, and the guardian branch supplies evidence and billing-review concepts. The original branches have incompatible Next.js and Vite application shells, so this is a selective port rather than a Git merge of every file. The result must remain a reliable synthetic demo when Nessie, FinchNode, Resend, or the provider mailbox is unavailable. Resend is the selected HTTP email sender; `ai@nipunsaini.com` is the reply address. The user named `nipun.saini9@gmail.com` as the test billing recipient and verified `nipunsaini.com` for sending.
 
 ## Architecture
 
@@ -42,6 +42,10 @@ One Cloudflare Worker serves Vite assets and handles inbound email and a narrow 
 ## Known constraints
 
 - Cloudflare Email Routing is enabled for `nipunsaini.com`, and no specific `ai@` rule exists. Wrangler is logged in. Existing forwarding rules and catch-all must remain untouched.
-- The user has a Resend API key and specified `nipun.saini9@gmail.com` as the test recipient. The key is not in this worktree's `.env` yet, and the verified sender address is not known. Both are required for a live send.
+- The user has a Resend API key and specified `nipun.saini9@gmail.com` as the test recipient. The key is in the ignored local `.env` and a Worker secret; `billing@nipunsaini.com` is the configured sender. A test send from this machine received Cloudflare error 1010, so live delivery remains unverified and disabled.
 - The current SpacetimeDB browser token is a demo identity, not production patient authentication. This integration must not remove the synthetic-only boundary or claim production readiness.
 - Cloudflare Workers receive email directly; a tunnel is useful only to reach a local SpacetimeDB server during development. It is not part of inbound mail routing.
+
+## Implementation status (2026-10-03)
+
+The receipt UI, SpacetimeDB state bridge, mock fallback, authenticated sandbox import, Resend adapter, inbound Email Routing Worker, and synthetic PDF parser are implemented and tested. The Worker and a fresh cloud database are deployed; sending is disabled pending end-to-end delivery verification. The earlier guardian PDF/insurance/rate-reference dispute path was not ported and must not be presented as active. See `PROJECT_CHECKLIST.md` for the remaining work.
