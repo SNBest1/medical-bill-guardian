@@ -10,6 +10,8 @@ export interface Env {
   /** Rolling 24-hour cap on real emails sent (default 20). */
   EMAIL_DAILY_LIMIT?: string;
   PROVIDER_REPLY_EMAIL?: string;
+  /** Comma-separated hosts a provider reply may link its PDF from (exact match, https only). */
+  BILL_PDF_ALLOWED_HOSTS?: string;
   NESSIE_API_KEY?: string;
   NESSIE_CUSTOMER_ID?: string;
   NESSIE_BASE_URL?: string;

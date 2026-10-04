@@ -1,6 +1,8 @@
 import { callReducer, inboundKind } from "./db";
 import { dispatchPending } from "./dispatch";
+import { verifiedSender } from "./sender";
 import { parseProviderReply } from "./mime";
+import { allowedPdfHosts } from "./pdf-link";
 import type { Env, InboundMessage } from "./types";
 import { handleSandboxDiscover } from "./sandbox";
 
@@ -16,7 +18,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 async function handleEmail(message: InboundMessage, env: Env): Promise<void> {
   if (message.to.toLowerCase() !== "ai@nipunsaini.com") return;
   if (message.from.toLowerCase() !== (env.PROVIDER_REPLY_EMAIL ?? "nipun.saini9@gmail.com").toLowerCase()) return;
-  const parsed = await parseProviderReply(message);
+  const sender = verifiedSender(message.headers, message.from);
+  if (!sender.ok) { console.warn(`ignored provider email: ${sender.reason}`); return; }
+  const parsed = await parseProviderReply(message, { allowedHosts: allowedPdfHosts(env.BILL_PDF_ALLOWED_HOSTS) });
   if (!parsed) return;
   const kind = await inboundKind(env, parsed.caseId);
   if (kind === "bill" && parsed.statement) await callReducer(env, "ingest_provider_bill_email", [parsed.caseId, parsed.messageId, parsed.statement]);

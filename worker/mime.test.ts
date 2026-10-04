@@ -22,6 +22,42 @@ function statementPdf(): Uint8Array {
   return new TextEncoder().encode(pdf);
 }
 
+/** A PDF whose text is drawn as positioned fragments, out of reading order, like many generators emit. */
+function fragmentedPdf(): Uint8Array {
+  const fragments = [
+    { text: "Total: 1100.00", x: 50, y: 640 },
+    { text: "99285 | 1100.00", x: 250, y: 660 },
+    { text: "Emergency Room |", x: 50, y: 660 },
+    { text: "Charges", x: 50, y: 680 },
+    { text: "Service date: 2026-09-28", x: 50, y: 700 },
+    { text: "Provider: University Hospital", x: 50, y: 720 },
+    { text: "Invoice: 48291", x: 50, y: 740 },
+  ];
+  const content = fragments.map((f) => `BT /F1 12 Tf 1 0 0 1 ${f.x} ${f.y} Tm (${f.text}) Tj ET`).join("\n");
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, i) => { offsets.push(pdf.length); pdf += `${i + 1} 0 obj\n${object}\nendobj\n`; });
+  const start = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => { pdf += `${String(offset).padStart(10, "0")} 00000 n \n`; });
+  pdf += `trailer\n<< /Root 1 0 R /Size ${objects.length + 1} >>\nstartxref\n${start}\n%%EOF`;
+  return new TextEncoder().encode(pdf);
+}
+
+const withAttachment = (pdf: Uint8Array) => [
+  "MIME-Version: 1.0", "Content-Type: multipart/mixed; boundary=guardian", "", "--guardian",
+  "Content-Type: text/plain", "", "Please review the statement.", "--guardian",
+  "Content-Type: application/pdf; name=bill.pdf", "Content-Disposition: attachment; filename=bill.pdf",
+  "Content-Transfer-Encoding: base64", "", Buffer.from(pdf).toString("base64"), "--guardian--", "",
+].join("\r\n");
+
 function email(raw: string, subject = "Re: [CASE-42] Itemized statement"): InboundMessage {
   const bytes = new TextEncoder().encode(raw);
   return {
@@ -63,5 +99,25 @@ describe("provider reply parsing", () => {
     const parsed = await parseProviderReply(email(raw));
     expect(parsed?.statement).toContain("Invoice: 48291");
     expect(parsed?.statement).toContain("Emergency Room | 99285 | 1100.00");
+  });
+
+  it("rebuilds lines from positioned, out-of-order PDF fragments", async () => {
+    const parsed = await parseProviderReply(email(withAttachment(fragmentedPdf())));
+    expect(parsed?.statement?.split("\n")).toEqual(["Invoice: 48291", "Provider: University Hospital", "Service date: 2026-09-28", "Charges", "Emergency Room | 99285 | 1100.00", "Total: 1100.00"]);
+  });
+
+  it("downloads a PDF linked in the reply body from an allowed host", async () => {
+    const raw = "Content-Type: text/plain\r\n\r\nHere is the statement: https://bills.example.org/b/umh.pdf\r\nThanks";
+    const fetcher = async () => new Response(Buffer.from(statementPdf()), { headers: { "content-type": "application/pdf" } });
+    const parsed = await parseProviderReply(email(raw), { allowedHosts: ["bills.example.org"], fetcher });
+    expect(parsed?.statement).toContain("Emergency Room | 99285 | 1100.00");
+  });
+
+  it("ignores a linked PDF on a host that is not allowed, without fetching it", async () => {
+    let fetched = false;
+    const raw = "Content-Type: text/plain\r\n\r\nStatement: https://evil.example.com/umh.pdf";
+    const parsed = await parseProviderReply(email(raw), { allowedHosts: ["bills.example.org"], fetcher: async () => { fetched = true; return new Response(""); } });
+    expect(parsed?.statement).toBeUndefined();
+    expect(fetched).toBe(false);
   });
 });
