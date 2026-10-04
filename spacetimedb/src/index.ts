@@ -205,6 +205,27 @@ export const record_outbound_email = spacetimedb.reducer({ caseId: t.u64(), kind
   logStep(ctx, row, { action: "SEND_EMAIL", tool: "Resend", input: kind, output: "Delivery accepted", title: "Email sent to provider billing", detail: "Waiting for a reply at the case mailbox", source: "Email service" });
 });
 
+/** Sends that fail this many times are dead-lettered: marked FAILED and surfaced to the patient. */
+const MAX_SEND_ATTEMPTS = 3;
+
+/** Records a failed send; after MAX_SEND_ATTEMPTS the request stops retrying and the patient is told. */
+export const record_outbound_failure = spacetimedb.reducer({ communicationId: t.u64(), error: t.string() }, (ctx, { communicationId, error }) => {
+  requireModuleOwner(ctx);
+  const request = ctx.db.communication.id.find(communicationId);
+  if (!request || request.status !== "PENDING" || !request.kind.startsWith("EMAIL_")) return;
+  const reason = error.replace(/[\r\n]+/g, " ").slice(0, 300);
+  const previous = ctx.db.outboundAttempt.communicationId.find(communicationId);
+  const attempts = (previous?.attempts ?? 0) + 1;
+  if (previous) ctx.db.outboundAttempt.communicationId.update({ communicationId, attempts, lastError: reason });
+  else ctx.db.outboundAttempt.insert({ communicationId, attempts, lastError: reason });
+  if (attempts < MAX_SEND_ATTEMPTS) return;
+  ctx.db.communication.id.update({ ...request, status: "FAILED", result: `Email could not be sent after ${attempts} attempts: ${reason}` });
+  const row = ctx.db.billCase.id.find(request.caseId);
+  if (!row) return;
+  ctx.db.auditEntry.insert({ id: 0n, caseId: row.id, owner: row.owner, at: ctx.timestamp, action: "SEND_EMAIL", tool: "Resend", inputSummary: request.kind, outputSummary: `Dead-lettered after ${attempts} attempts`, status: "FAILED" });
+  ctx.db.timelineEvent.insert({ id: 0n, caseId: row.id, owner: row.owner, at: ctx.timestamp, title: "Email could not be sent", detail: "Delivery failed repeatedly; nothing was sent to billing", source: "Email", status: "attention" });
+});
+
 /** Ingests a correlated provider statement once, after the authorized email was sent. */
 export const ingest_provider_bill_email = spacetimedb.reducer({ caseId: t.u64(), messageId: t.string(), rawStatement: t.string() }, (ctx, { caseId, messageId, rawStatement }) => {
   requireModuleOwner(ctx);
@@ -242,7 +263,7 @@ export const reset_demo = spacetimedb.reducer((ctx) => {
     for (const item of [...ctx.db.finding.caseId.filter(row.id)]) ctx.db.finding.id.delete(item.id);
     for (const item of [...ctx.db.timelineEvent.caseId.filter(row.id)]) ctx.db.timelineEvent.id.delete(item.id);
     for (const item of [...ctx.db.auditEntry.caseId.filter(row.id)]) ctx.db.auditEntry.id.delete(item.id);
-    for (const item of [...ctx.db.communication.caseId.filter(row.id)]) ctx.db.communication.id.delete(item.id);
+    for (const item of [...ctx.db.communication.caseId.filter(row.id)]) { ctx.db.outboundAttempt.communicationId.delete(item.id); ctx.db.communication.id.delete(item.id); }
     for (const item of [...ctx.db.processedEmail.caseId.filter(row.id)]) ctx.db.processedEmail.messageId.delete(item.messageId);
     ctx.db.billCase.id.delete(row.id);
   }

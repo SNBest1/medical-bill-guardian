@@ -7,6 +7,8 @@ export interface Env {
   RESEND_API_KEY?: string;
   RESEND_FROM_EMAIL?: string;
   EMAIL_SEND_ENABLED?: string;
+  /** Rolling 24-hour cap on real emails sent (default 20). */
+  EMAIL_DAILY_LIMIT?: string;
   PROVIDER_REPLY_EMAIL?: string;
   NESSIE_API_KEY?: string;
   NESSIE_CUSTOMER_ID?: string;

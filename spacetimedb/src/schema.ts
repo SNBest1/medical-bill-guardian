@@ -18,7 +18,9 @@ export const auditEntry = table({ name: "audit_entry" }, { ...child, at: t.times
 export const communication = table({ name: "communication" }, { ...child, kind: t.string(), at: t.timestamp(), status: t.string(), transcript: t.string(), result: t.option(t.string()), messageId: t.option(t.string()) });
 export const billDelivery = table({ name: "bill_delivery" }, { scheduledId: t.u64().primaryKey().autoInc(), scheduledAt: t.scheduleAt(), caseId: t.u64().index("btree") });
 export const moduleOwner = table({ name: "module_owner" }, { ownerIdentity: t.identity().primaryKey() });
+// Durable outbox retry state: one row per authorized email that failed to send at least once.
+export const outboundAttempt = table({ name: "outbound_attempt" }, { communicationId: t.u64().primaryKey(), attempts: t.u32(), lastError: t.string() });
 export const processedEmail = table({ name: "processed_email" }, { messageId: t.string().primaryKey(), caseId: t.u64().index("btree"), kind: t.string() });
 
-const spacetimedb = schema({ billCase, medicalRecord, billItem, finding, timelineEvent, auditEntry, communication, billDelivery, moduleOwner, processedEmail });
+const spacetimedb = schema({ billCase, medicalRecord, billItem, finding, timelineEvent, auditEntry, communication, billDelivery, moduleOwner, processedEmail, outboundAttempt });
 export default spacetimedb;

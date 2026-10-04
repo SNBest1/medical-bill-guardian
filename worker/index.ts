@@ -1,6 +1,6 @@
-import { callReducer, inboundKind, pendingEmails } from "./db";
+import { callReducer, inboundKind } from "./db";
+import { dispatchPending } from "./dispatch";
 import { parseProviderReply } from "./mime";
-import { sendProviderEmail } from "./resend";
 import type { Env, InboundMessage } from "./types";
 import { handleSandboxDiscover } from "./sandbox";
 
@@ -23,17 +23,8 @@ async function handleEmail(message: InboundMessage, env: Env): Promise<void> {
   if (kind === "review" && parsed.body) await callReducer(env, "ingest_provider_review_email", [parsed.caseId, parsed.messageId, parsed.body]);
 }
 
-/** Polls authorized outbox rows; sending stays disabled until deployment secrets and flag are set. */
-async function dispatchPending(env: Env): Promise<void> {
-  if (env.EMAIL_SEND_ENABLED !== "true") return;
-  for (const item of await pendingEmails(env)) {
-    const messageId = await sendProviderEmail(env, item);
-    await callReducer(env, "record_outbound_email", [item.caseId, item.kind, messageId]);
-  }
-}
-
 export default {
   fetch: handleFetch,
   email: handleEmail,
-  scheduled: (_event: unknown, env: Env) => dispatchPending(env),
+  scheduled: async (_event: unknown, env: Env) => { await dispatchPending(env); },
 };

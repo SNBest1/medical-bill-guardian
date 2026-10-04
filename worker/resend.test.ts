@@ -20,6 +20,18 @@ describe("Resend provider request", () => {
     expect(JSON.parse(String(init.body))).toMatchObject({ to: ["nipun.saini9@gmail.com"], reply_to: "ai@nipunsaini.com" });
   });
 
+  it("identifies itself with a User-Agent, which Cloudflare's bot filter (error 1010) requires", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: "resend-42" }), { status: 200 }));
+    await sendProviderEmail({ EMAIL_SEND_ENABLED: "true", RESEND_API_KEY: "k", RESEND_FROM_EMAIL: "billing@nipunsaini.com" } as Env, input, fetcher);
+    const [, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)["User-Agent"]).toMatch(/^medical-bill-guardian\//);
+  });
+
+  it("reports Resend's own error message", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ name: "validation_error", message: "The billing@nipunsaini.com domain is not verified" }), { status: 403 }));
+    await expect(sendProviderEmail({ EMAIL_SEND_ENABLED: "true", RESEND_API_KEY: "k", RESEND_FROM_EMAIL: "billing@nipunsaini.com" } as Env, input, fetcher)).rejects.toThrow("Resend send failed (403): The billing@nipunsaini.com domain is not verified");
+  });
+
   it("states missing medical evidence cautiously", () => {
     const draft = draftProviderEmail({ ...input, kind: "EMAIL_BILLING_REVIEW", questionedCharge: "specialist consultation" });
     expect(draft.text).toContain("did not verify");

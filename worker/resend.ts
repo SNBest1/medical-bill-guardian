@@ -40,10 +40,15 @@ export async function sendProviderEmail(env: Env, input: OutboundEmail, fetcher:
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
       "Content-Type": "application/json",
       "Idempotency-Key": `medical-bill-guardian/${input.caseId}/${input.kind}`,
+      // Resend sits behind Cloudflare, whose bot filter rejects clients without a User-Agent (error 1010).
+      "User-Agent": "medical-bill-guardian/1.0",
     },
     body: JSON.stringify({ from: env.RESEND_FROM_EMAIL, to: [RECIPIENT], reply_to: REPLY_TO, subject, text }),
   });
-  if (!response.ok) throw new Error(`Resend send failed (${response.status})`);
+  if (!response.ok) {
+    const detail = await response.json().then((body: { message?: string }) => body.message).catch(() => undefined);
+    throw new Error(`Resend send failed (${response.status})${detail ? `: ${detail}` : ""}`);
+  }
   const result = await response.json() as { id?: string };
   if (!result.id) throw new Error("Resend did not return an email ID");
   return result.id;
