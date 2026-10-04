@@ -3,13 +3,19 @@ export type ClinicalStatus = "SUPPORTED" | "PARTIALLY_SUPPORTED" | "NO_MATCH_FOU
 export type RecordKind = "encounter" | "imaging" | "procedure" | "medication" | "lab" | "document";
 
 export interface RecordInput { kind: RecordKind; description: string; date: string; provider: string }
-export interface BillLine { description: string; code?: string; amountCents: number; serviceDate: string }
+export type Setting = "INPATIENT" | "OUTPATIENT";
+export type Component = "FACILITY" | "PROFESSIONAL" | "GLOBAL";
+export interface BillLine { description: string; code?: string; amountCents: number; serviceDate: string; setting?: Setting; component?: Component; units?: number }
 export interface ParsedBill { invoiceId: string; provider: string; totalCents: number; items: BillLine[] }
 export interface FindingInput {
   /** Index into ParsedBill.items, or null for whole-bill findings such as a total mismatch. */
   lineIndex: number | null;
   description: string; amountCents: number; clinicalStatus: ClinicalStatus;
-  pricingStatus: "NOT_ASSESSED" | "REVIEW"; confidence: number; evidence: string[];
+  pricingStatus: "NOT_ASSESSED" | "ASSESSED" | "REVIEW"; confidence: number; evidence: string[];
   explanation: string; action: "NONE" | "REQUEST_REVIEW";
 }
 export interface ResolutionInput { result: "DUPLICATE_REMOVED" | "CHARGE_VERIFIED" | "PROVIDER_REVIEW_PENDING" | "UNRESOLVED"; originalTotalCents: number; correctedTotalCents: number; adjustmentCents: number; explanation: string }
+
+/** One published rate from the UM Health price-transparency file (amount in cents). */
+export interface PriceRate { code: string; basis: "CASH" | "NEGOTIATED"; payer: string; plan: string; setting: Setting; component: Component; modifiers: string[]; units: number; amountCents: number }
+export interface PriceSource { provider: string; name: string; url: string; asOf: string; retrievedOn: string }

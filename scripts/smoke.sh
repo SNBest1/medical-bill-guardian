@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs the University Hospital story against a throwaway local SpacetimeDB server.
+# Runs the University of Michigan Health story against a throwaway local SpacetimeDB server.
 set -euo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 DB="mbg-smoke"
@@ -44,7 +44,9 @@ grep -q "only be run by the scheduler" <<<"$forced" || fail "a client called del
 
 sleep 3
 sql "SELECT status FROM bill_case" | grep -q REVIEW_REQUIRED || fail "bill was not delivered and analyzed"
-[ "$(sql "SELECT id FROM bill_item" | grep -cE '^\s*[0-9]+\s*$')" = "6" ] || fail "expected six bill items"
+[ "$(sql "SELECT id FROM bill_item" | grep -cE '^\s*[0-9]+\s*$')" = "7" ] || fail "expected seven bill items"
+sql "SELECT patient_responsibility_cents FROM insurance_summary" | grep -q 100462 || fail "claim deduction missing (patient owes 100462 cents)"
+sql "SELECT reference_cents, review FROM price_comparison WHERE review = true" | grep -q 14714 || fail "CT allowed-vs-contract price lead missing"
 
 call authorize_review 1
 sql "SELECT status FROM bill_case" | grep -q USER_NOTIFIED || fail "case did not finish"
@@ -65,25 +67,30 @@ sql "SELECT status FROM bill_case" | grep -q WAITING_FOR_BILL || fail "email bil
 [ "$(sql "SELECT case_id FROM bill_delivery" | grep -cE '^\s*[0-9]+\s*$')" = "0" ] || fail "email request scheduled a mock bill"
 spacetime call -y -s "$SERVER" --anonymous "$DB" record_outbound_email 3 EMAIL_ITEMIZED_BILL_REQUEST outbound-3 2>/dev/null && fail "stranger recorded an outbound email"
 call record_outbound_email 3 EMAIL_ITEMIZED_BILL_REQUEST outbound-3
-statement='Invoice: UH-48291
-Provider: University Hospital
+statement='Invoice: UMH-48291
+Provider: University of Michigan Health
 Service date: 2026-09-28
+Setting: OUTPATIENT
 Charges
-Emergency room | 99285 | 1100.00
-CT scan | - | 1800.00
-X-ray | - | 450.00
-Suture repair | - | 600.00
-Medication | - | 170.00
-Specialist consultation | - | 700.00
+Emergency room visit | 99285 | FACILITY | 1 | 2000.00
+Emergency physician services | 99285 | PROFESSIONAL | 1 | 450.00
+CT head without contrast | 70450 | PROFESSIONAL | 1 | 900.00
+Chest X-ray | 71046 | FACILITY | 1 | 240.00
+Laceration repair | 12001 | PROFESSIONAL | 1 | 360.00
+Medication | J2405 | FACILITY | 1 | 170.00
+Specialist consultation | 99244 | PROFESSIONAL | 1 | 700.00
 Total: 4820.00'
 statement_json=$(STATEMENT="$statement" node -e 'process.stdout.write(JSON.stringify(process.env.STATEMENT))')
 spacetime call -y -s "$SERVER" --anonymous "$DB" ingest_provider_bill_email 3 inbound-bill-3 "$statement_json" 2>/dev/null && fail "stranger ingested a provider bill"
 call ingest_provider_bill_email 3 inbound-bill-3 "$statement_json"
 sql "SELECT status FROM bill_case" | grep -q REVIEW_REQUIRED || fail "provider bill was not reconciled"
 call ingest_provider_bill_email 3 inbound-bill-3 "$statement_json"
-[ "$(sql "SELECT id FROM bill_item" | grep -cE '^\s*[0-9]+\s*$')" = "6" ] || fail "duplicate email added bill items"
+[ "$(sql "SELECT id FROM bill_item" | grep -cE '^\s*[0-9]+\s*$')" = "7" ] || fail "duplicate email added bill items"
 call authorize_email_review 3
 sql "SELECT status FROM bill_case" | grep -q WAITING_FOR_PROVIDER || fail "email review did not wait for provider"
+dispute=$(sql "SELECT transcript FROM communication WHERE kind = 'EMAIL_BILLING_REVIEW'")
+grep -q "Possible overpayment: \$3,815.38" <<<"$dispute" || fail "dispute letter lacks the claim's overpayment"
+grep -q "\$147.14" <<<"$dispute" || fail "dispute letter lacks the CT contract rate citation"
 call record_outbound_email 3 EMAIL_BILLING_REVIEW outbound-review-3
 call ingest_provider_review_email 3 inbound-review-3 'We are reviewing this charge.'
 sql "SELECT status FROM bill_case" | grep -q WAITING_FOR_PROVIDER || fail "unverified email resolved the case"

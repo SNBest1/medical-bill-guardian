@@ -12,6 +12,8 @@ export interface OutboundEmail {
   paidOn: string;
   invoiceId?: string;
   questionedCharge?: string;
+  /** Letter composed and stored by the module (the cited dispute); used as the review email's text. */
+  body?: string;
 }
 
 /** Builds a minimal, stable provider request from authorized case facts. */
@@ -23,6 +25,7 @@ export function draftProviderEmail(input: OutboundEmail) {
       text: `Please provide the itemized statement for the ${input.merchant} payment dated ${input.paidOn}. Include service dates, descriptions, codes if available, charges, insurance adjustments, and patient responsibility. Please reply with the statement as a PDF attachment. Reference ${marker} in your reply.`,
     };
   }
+  if (input.body) return { subject: `${marker} Billing dispute`, text: `${input.body}\n\nReference ${marker} in your reply.` };
   return {
     subject: `${marker} Billing review request`,
     text: `Please review invoice ${input.invoiceId ?? "on file"} for the ${input.merchant} visit dated ${input.paidOn}. The available patient-authorized record did not verify the ${input.questionedCharge ?? "questioned"} charge. Please provide supporting documentation or a corrected statement. This request does not assert that the charge is invalid. Reference ${marker} in your reply.`,

@@ -40,6 +40,13 @@ export async function callReducer(env: Env, reducer: string, args: unknown[], fe
 
 export interface PendingEmail extends OutboundEmail { communicationId: string }
 
+/** SQL renders option<string> as {"some": value} or {"none": []}; plain strings pass through. */
+function optionalString(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && "some" in value && typeof (value as { some: unknown }).some === "string") return (value as { some: string }).some;
+  return undefined;
+}
+
 /** Finds only explicitly authorized real-email work; mock communications have other kinds. */
 export async function pendingEmails(env: Env): Promise<PendingEmail[]> {
   const communications = await sqlRows(env, "SELECT * FROM communication WHERE status = 'PENDING'");
@@ -54,7 +61,8 @@ export async function pendingEmails(env: Env): Promise<PendingEmail[]> {
     return [{
       communicationId: String(row.id), caseId: String(row.caseId), kind,
       merchant: String(found.merchant), paidOn: String(found.paidOn),
-      invoiceId: found.invoiceId ? String(found.invoiceId) : undefined,
+      invoiceId: optionalString(found.invoiceId),
+      body: kind === "EMAIL_BILLING_REVIEW" && typeof row.transcript === "string" && row.transcript.startsWith("Medical Bill Guardian billing dispute") ? row.transcript : undefined,
     }];
   });
 }

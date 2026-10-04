@@ -11,3 +11,14 @@ button.app-wordmark,button.archive-row,button.back-link-new{border:0;background:
 .story-timeline{border-top:1px solid #bfd0eb;margin-top:30px;padding-top:28px}.story-timeline h2{font:600 28px var(--font-display);margin:8px 0 24px}.story-timeline article{display:grid;grid-template-columns:26px 1fr;gap:13px;position:relative;padding:0 0 23px}.story-timeline article:not(:last-child):before{content:"";position:absolute;left:10px;top:23px;bottom:0;border-left:1px solid #9eb5db}.timeline-mark{width:22px;height:22px;display:grid;place-items:center;background:#d4e6d9;color:#136548;border:1px solid #7bb08e;border-radius:50%;font:600 11px var(--font-data);z-index:1}.story-timeline article.attention .timeline-mark{background:#ffe9df;color:#ad432e;border-color:#e7a18f}.story-timeline article.pending .timeline-mark{background:#e7ecf6;color:#7286a8;border-color:#abbad4}.story-timeline strong{font-size:13px}.story-timeline p{font-size:11px;color:#536b95;line-height:1.5;margin:5px 0}.story-timeline small{font:9px var(--font-data);color:#6d80a3}
 .story-panel .decision-panel{margin-bottom:0}.loading-state{min-height:100vh;display:grid;place-items:center;background:#cadcff;color:#10204b;font:600 18px var(--font-interface)}
 .decision-actions{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:225px}.decision-actions .coral-button{width:100%;margin:0}.decision-actions small{font:9px/1.4 var(--font-interface);color:#5e7190}.sim-button{border:1px solid #889fc2;background:#fff;color:var(--ink);padding:10px 13px;min-height:42px;display:flex;align-items:center;justify-content:center;gap:9px;font:600 10px var(--font-data);text-transform:uppercase}.sim-button:hover{background:#e7effe}@media(max-width:760px){.decision-actions{width:100%}}
+/* Claim deduction, published prices, and the dispute letter. */
+.claim-prices{display:grid;gap:22px;border-top:1px solid #bfd0eb;margin-top:30px;padding-top:24px}
+.claim-block{display:grid;gap:10px}
+.claim-block dl{display:grid;grid-template-columns:max-content max-content;gap:6px 28px;margin:0}
+.claim-block dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.claim-note{margin:0;font-size:13px;opacity:.75}
+.claim-block ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.claim-block li{display:grid;grid-template-columns:1fr auto auto;gap:12px;font-size:14px;font-variant-numeric:tabular-nums}
+.claim-block li.lead span:first-child{font-weight:700;color:#b4541a}
+.claim-block pre{white-space:pre-wrap;font-size:13px;line-height:1.5;background:#f3f6fa;border-radius:10px;padding:14px;margin:0;max-height:320px;overflow:auto}
+@media (max-width:640px){.claim-block li{grid-template-columns:1fr}}

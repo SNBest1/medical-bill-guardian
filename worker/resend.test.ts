@@ -32,6 +32,12 @@ describe("Resend provider request", () => {
     await expect(sendProviderEmail({ EMAIL_SEND_ENABLED: "true", RESEND_API_KEY: "k", RESEND_FROM_EMAIL: "billing@nipunsaini.com" } as Env, input, fetcher)).rejects.toThrow("Resend send failed (403): The billing@nipunsaini.com domain is not verified");
   });
 
+  it("sends the stored dispute letter as the review email's body", () => {
+    const draft = draftProviderEmail({ ...input, kind: "EMAIL_BILLING_REVIEW", body: "Medical Bill Guardian billing dispute for synthetic case CASE-4821." });
+    expect(draft.subject).toBe("[CASE-42] Billing dispute");
+    expect(draft.text).toBe("Medical Bill Guardian billing dispute for synthetic case CASE-4821.\n\nReference [CASE-42] in your reply.");
+  });
+
   it("states missing medical evidence cautiously", () => {
     const draft = draftProviderEmail({ ...input, kind: "EMAIL_BILLING_REVIEW", questionedCharge: "specialist consultation" });
     expect(draft.text).toContain("did not verify");

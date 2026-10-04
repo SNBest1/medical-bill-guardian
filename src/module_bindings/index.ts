@@ -54,7 +54,9 @@ import MyBillItemsRow from "./my_bill_items_table";
 import MyCasesRow from "./my_cases_table";
 import MyCommunicationsRow from "./my_communications_table";
 import MyFindingsRow from "./my_findings_table";
+import MyInsuranceRow from "./my_insurance_table";
 import MyMedicalRecordsRow from "./my_medical_records_table";
+import MyPriceComparisonsRow from "./my_price_comparisons_table";
 import MyTimelineRow from "./my_timeline_table";
 
 /** Type-only namespace exports for generated type groups. */
@@ -96,6 +98,13 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, MyFindingsRow),
+  myInsurance: __table({
+    name: 'my_insurance',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyInsuranceRow),
   myMedicalRecords: __table({
     name: 'my_medical_records',
     indexes: [
@@ -103,6 +112,13 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, MyMedicalRecordsRow),
+  myPriceComparisons: __table({
+    name: 'my_price_comparisons',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, MyPriceComparisonsRow),
   myTimeline: __table({
     name: 'my_timeline',
     indexes: [
@@ -143,8 +159,12 @@ type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "ta
     readonly "my_communications": Omit<typeof tablesSchema.schemaType.tables["myCommunications"], "accessorName"> & { readonly accessorName: "my_communications" };
     /** @deprecated Use `myFindings` instead. This alias will be removed in the next major version. */
     readonly "my_findings": Omit<typeof tablesSchema.schemaType.tables["myFindings"], "accessorName"> & { readonly accessorName: "my_findings" };
+    /** @deprecated Use `myInsurance` instead. This alias will be removed in the next major version. */
+    readonly "my_insurance": Omit<typeof tablesSchema.schemaType.tables["myInsurance"], "accessorName"> & { readonly accessorName: "my_insurance" };
     /** @deprecated Use `myMedicalRecords` instead. This alias will be removed in the next major version. */
     readonly "my_medical_records": Omit<typeof tablesSchema.schemaType.tables["myMedicalRecords"], "accessorName"> & { readonly accessorName: "my_medical_records" };
+    /** @deprecated Use `myPriceComparisons` instead. This alias will be removed in the next major version. */
+    readonly "my_price_comparisons": Omit<typeof tablesSchema.schemaType.tables["myPriceComparisons"], "accessorName"> & { readonly accessorName: "my_price_comparisons" };
     /** @deprecated Use `myTimeline` instead. This alias will be removed in the next major version. */
     readonly "my_timeline": Omit<typeof tablesSchema.schemaType.tables["myTimeline"], "accessorName"> & { readonly accessorName: "my_timeline" };
   };
@@ -170,7 +190,9 @@ const tableAccessorAliases = {
   "my_cases": "myCases",
   "my_communications": "myCommunications",
   "my_findings": "myFindings",
+  "my_insurance": "myInsurance",
   "my_medical_records": "myMedicalRecords",
+  "my_price_comparisons": "myPriceComparisons",
   "my_timeline": "myTimeline",
 } as const;
 
@@ -202,8 +224,12 @@ export type DbView = __DbViewBase & {
   readonly "my_communications": __DbViewBase["myCommunications"];
   /** @deprecated Use `myFindings` instead. This alias will be removed in the next major version. */
   readonly "my_findings": __DbViewBase["myFindings"];
+  /** @deprecated Use `myInsurance` instead. This alias will be removed in the next major version. */
+  readonly "my_insurance": __DbViewBase["myInsurance"];
   /** @deprecated Use `myMedicalRecords` instead. This alias will be removed in the next major version. */
   readonly "my_medical_records": __DbViewBase["myMedicalRecords"];
+  /** @deprecated Use `myPriceComparisons` instead. This alias will be removed in the next major version. */
+  readonly "my_price_comparisons": __DbViewBase["myPriceComparisons"];
   /** @deprecated Use `myTimeline` instead. This alias will be removed in the next major version. */
   readonly "my_timeline": __DbViewBase["myTimeline"];
 };
@@ -220,8 +246,12 @@ export type Tables = __TablesBase & {
   readonly "my_communications": __TablesBase["myCommunications"];
   /** @deprecated Use `myFindings` instead. This alias will be removed in the next major version. */
   readonly "my_findings": __TablesBase["myFindings"];
+  /** @deprecated Use `myInsurance` instead. This alias will be removed in the next major version. */
+  readonly "my_insurance": __TablesBase["myInsurance"];
   /** @deprecated Use `myMedicalRecords` instead. This alias will be removed in the next major version. */
   readonly "my_medical_records": __TablesBase["myMedicalRecords"];
+  /** @deprecated Use `myPriceComparisons` instead. This alias will be removed in the next major version. */
+  readonly "my_price_comparisons": __TablesBase["myPriceComparisons"];
   /** @deprecated Use `myTimeline` instead. This alias will be removed in the next major version. */
   readonly "my_timeline": __TablesBase["myTimeline"];
 };

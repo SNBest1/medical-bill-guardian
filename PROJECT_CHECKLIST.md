@@ -38,3 +38,11 @@ Status 2026-10-03. All checked items are implemented; a deployed service is not 
 - [ ] Complete privacy and security review with real service agreements.
 
 The active demo is synthetic. Relay/Photon phone or chat contact is no longer the active communication path.
+
+## Dispute pipeline in SpacetimeDB (2026-10-04)
+
+- [x] Demo story moved to University of Michigan Health with real codes, setting, component, and units.
+- [x] Claim deduction stored per case (`insurance_summary`, synthetic amounts) and shown in the case view.
+- [x] Published UM Health rates embedded in the module; allowed-vs-contract comparison stored per line (`price_comparison`) and cited.
+- [x] Authorized review email carries the cited dispute letter; the smoke test checks the overpayment and the contract-rate citation.
+- [ ] Medicare fee-schedule reference rates (deferred).

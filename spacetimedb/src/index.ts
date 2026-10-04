@@ -1,13 +1,17 @@
 import { ScheduleAt } from "spacetimedb";
 import { SenderError, t, type InferSchema, type ReducerCtx } from "spacetimedb/server";
-import spacetimedb, { auditEntry, billCase, billDelivery, billItem, communication, finding, medicalRecord, timelineEvent } from "./schema";
+import spacetimedb, { auditEntry, billCase, billDelivery, billItem, communication, finding, insuranceSummary, medicalRecord, priceComparison, timelineEvent } from "./schema";
 import { BILL_DELAY_MICROS, DEMO_CASE_LABEL, DEMO_RECORDS, DEMO_STATEMENT, DEMO_TRANSACTION, billRequestTranscript, billingReview } from "./logic/fixtures";
 import { matchEncounter } from "./logic/matcher";
 import { formatDollars } from "./logic/money";
 import { parseItemizedBill } from "./logic/parse-bill";
 import { reconcile } from "./logic/reconcile";
 import { buildSummary } from "./logic/summary";
-import type { CaseStatus, ParsedBill, RecordKind, ResolutionInput } from "./logic/types";
+import type { CaseStatus, FindingInput, ParsedBill, RecordKind, ResolutionInput } from "./logic/types";
+import { claimForInvoice, summarizeClaim } from "./logic/insurance";
+import { comparePrices } from "./logic/pricing";
+import { composeDispute } from "./logic/dispute";
+import { PRICE_RATES, PRICE_SOURCE } from "./logic/price-references";
 
 export default spacetimedb;
 
@@ -145,7 +149,28 @@ function storeBill(ctx: Ctx, row: CaseRow, bill: ParsedBill) {
   logStep(ctx, withBill, { action: "PARSE_BILL", tool: "parseItemizedBill", input: bill.invoiceId, output: `${bill.items.length} charges`, title: "Itemized bill parsed", detail: `${bill.items.length} charges extracted from the provider statement`, source: "Case agent" });
   const records = [...ctx.db.medicalRecord.caseId.filter(row.id)].map((record) => ({ ...record, kind: record.kind as RecordKind }));
   const results = reconcile(bill, records);
+  // Insurance: the adjudicated claim for this invoice, deducted from the bill.
+  const claim = claimForInvoice(bill.invoiceId);
+  if (claim) {
+    const summary = summarizeClaim(claim, bill, Number(row.amountCents));
+    ctx.db.insuranceSummary.caseId.delete(row.id);
+    ctx.db.insuranceSummary.insert({ caseId: row.id, owner: row.owner, payer: summary.payer, plan: summary.plan, network: summary.network, claimStatus: summary.claimStatus, synthetic: summary.synthetic,
+      billedCents: BigInt(summary.billedCents), allowedCents: BigInt(summary.allowedCents), contractualCents: BigInt(summary.contractualCents), insurerPaidCents: BigInt(summary.insurerPaidCents),
+      deductibleCents: BigInt(summary.deductibleCents), copayCents: BigInt(summary.copayCents), coinsuranceCents: BigInt(summary.coinsuranceCents), noncoveredCents: BigInt(summary.noncoveredCents),
+      patientResponsibilityCents: BigInt(summary.patientResponsibilityCents), possibleOverpaymentCents: BigInt(summary.possibleOverpaymentCents), status: summary.status, notes: summary.notes });
+    logStep(ctx, withBill, { action: "APPLY_CLAIM", tool: "summarizeClaim", input: bill.invoiceId, output: `Patient owes ${formatDollars(summary.patientResponsibilityCents)}`, title: "Insurance claim applied", detail: `${summary.payer} allowed ${formatDollars(summary.allowedCents)}; synthetic claim amounts`, source: "Insurance claim" });
+  }
+  // Prices: only this provider's published rates apply.
+  const comparisons = sameProvider(bill.provider, PRICE_SOURCE.provider) ? comparePrices(bill, claim, PRICE_RATES) : [];
+  for (const comparison of comparisons) {
+    const result = results.find((item) => item.lineIndex === comparison.lineIndex);
+    if (!result) continue;
+    result.pricingStatus = comparison.review ? "REVIEW" : "ASSESSED";
+    if (comparison.review) result.action = "REQUEST_REVIEW";
+  }
   for (const item of results) ctx.db.finding.insert({ id: 0n, caseId: row.id, owner: row.owner, billItemId: item.lineIndex === null ? undefined : itemIds[item.lineIndex], description: item.description, amountCents: BigInt(item.amountCents), clinicalStatus: item.clinicalStatus, pricingStatus: item.pricingStatus, confidence: item.confidence, evidence: item.evidence, explanation: item.explanation, action: item.action });
+  for (const comparison of comparisons) ctx.db.priceComparison.insert({ id: 0n, caseId: row.id, owner: row.owner, billItemId: itemIds[comparison.lineIndex], referenceCents: BigInt(comparison.referenceCents), comparedCents: BigInt(comparison.comparedCents), comparedField: comparison.comparedField, multiple: comparison.multiple, basis: comparison.basis, sourceName: PRICE_SOURCE.name, sourceUrl: PRICE_SOURCE.url, asOf: PRICE_SOURCE.asOf, review: comparison.review });
+  if (comparisons.length) logStep(ctx, withBill, { action: "COMPARE_PRICES", tool: "comparePrices", input: `${comparisons.length} published rates`, output: `${comparisons.filter((item) => item.review).length} price questions`, title: "Published prices compared", detail: `${PRICE_SOURCE.name}, as of ${PRICE_SOURCE.asOf}`, source: "Price transparency file" });
   const supported = results.filter((item) => item.clinicalStatus === "SUPPORTED").length;
   const review = results.filter((item) => item.action === "REQUEST_REVIEW").length;
   logStep(ctx, withBill, { action: "RECONCILE", tool: "compareBillToRecords", input: `${bill.items.length} charges`, output: `${supported} supported, ${review} need review`, title: "Bill analyzed", detail: `${supported} supported · ${review} requires review`, source: "Reconciliation engine" });
@@ -153,6 +178,10 @@ function storeBill(ctx: Ctx, row: CaseRow, bill: ParsedBill) {
   ctx.db.timelineEvent.insert({ id: 0n, caseId: row.id, owner: row.owner, at: ctx.timestamp, title: "Your approval is needed", detail: "Review the uncertain charge before contacting hospital billing", source: "You", status: "attention" });
   setStatus(ctx, withBill, "REVIEW_REQUIRED");
 }
+
+const normalizeProvider = (name: string) => name.trim().replace(/\s+/g, " ").toUpperCase();
+/** Published rates belong to one provider; a bill from anyone else is never compared with them. */
+function sameProvider(a: string, b: string) { return normalizeProvider(a) === normalizeProvider(b); }
 
 /** Scheduler-only: delivers the synthetic statement after a short delay. */
 export const deliver_bill = spacetimedb.reducer({ onSchedule: billDelivery }, { delivery: billDelivery.rowType }, (ctx, { delivery }) => {
@@ -176,6 +205,19 @@ export const authorize_review = spacetimedb.reducer({ caseId: t.u64() }, (ctx, {
   finishCase(ctx, resolved);
 });
 
+/** Rebuilds the stored analysis and composes the cited dispute letter that the review email carries. */
+function disputeText(ctx: Ctx, row: CaseRow): string {
+  const byId = (a: { id: bigint }, b: { id: bigint }) => (a.id < b.id ? -1 : 1);
+  const items = [...ctx.db.billItem.caseId.filter(row.id)].sort(byId);
+  const lineOf = (billItemId: bigint | undefined) => (billItemId === undefined ? null : items.findIndex((item) => item.id === billItemId));
+  const bill = { invoiceId: row.invoiceId ?? "", provider: row.merchant, totalCents: Number(row.billTotalCents ?? 0n), items: items.map((item) => ({ description: item.description, code: item.code, amountCents: Number(item.amountCents), serviceDate: item.serviceDate })) };
+  const findings = [...ctx.db.finding.caseId.filter(row.id)].sort(byId).map((item) => ({ lineIndex: lineOf(item.billItemId), description: item.description, amountCents: Number(item.amountCents), clinicalStatus: item.clinicalStatus as FindingInput["clinicalStatus"], pricingStatus: item.pricingStatus as FindingInput["pricingStatus"], confidence: item.confidence, evidence: item.evidence, explanation: item.explanation, action: item.action as FindingInput["action"] }));
+  const comparisons = [...ctx.db.priceComparison.caseId.filter(row.id)].map((item) => ({ lineIndex: lineOf(item.billItemId) ?? -1, referenceCents: Number(item.referenceCents), comparedCents: Number(item.comparedCents), comparedField: item.comparedField as "ALLOWED" | "BILLED", multiple: item.multiple, basis: item.basis as "CASH" | "NEGOTIATED", review: item.review }));
+  const stored = ctx.db.insuranceSummary.caseId.find(row.id);
+  const summary = stored ? { ...stored, billedCents: Number(stored.billedCents), allowedCents: Number(stored.allowedCents), contractualCents: Number(stored.contractualCents), insurerPaidCents: Number(stored.insurerPaidCents), deductibleCents: Number(stored.deductibleCents), copayCents: Number(stored.copayCents), coinsuranceCents: Number(stored.coinsuranceCents), noncoveredCents: Number(stored.noncoveredCents), patientResponsibilityCents: Number(stored.patientResponsibilityCents), possibleOverpaymentCents: Number(stored.possibleOverpaymentCents), status: stored.status as "RECONCILED" | "REVIEW_REQUIRED" } : null;
+  return composeDispute({ caseLabel: row.label, bill, findings, comparisons, summary, paidCents: Number(row.amountCents), source: PRICE_SOURCE });
+}
+
 /** Records owner approval for an email review without inventing the provider's outcome. */
 export const authorize_email_review = spacetimedb.reducer({ caseId: t.u64() }, (ctx, { caseId }) => {
   const row = ownedCase(ctx, caseId);
@@ -183,7 +225,7 @@ export const authorize_email_review = spacetimedb.reducer({ caseId: t.u64() }, (
   const questioned = [...ctx.db.finding.caseId.filter(caseId)].filter((item) => item.action === "REQUEST_REVIEW");
   if (!questioned.length) throw new SenderError("No charge needs review");
   for (const event of [...ctx.db.timelineEvent.caseId.filter(caseId)]) if (event.status === "attention") ctx.db.timelineEvent.id.update({ ...event, status: "complete", title: "You authorized billing review", detail: "Provider review email is being prepared" });
-  ctx.db.communication.insert({ id: 0n, caseId, owner: row.owner, kind: "EMAIL_BILLING_REVIEW", at: ctx.timestamp, status: "PENDING", transcript: `Please review ${questioned.length} questioned charge(s) on invoice ${row.invoiceId}. Missing records require verification and do not prove an error.`, result: "Authorized; waiting for email delivery", messageId: undefined });
+  ctx.db.communication.insert({ id: 0n, caseId, owner: row.owner, kind: "EMAIL_BILLING_REVIEW", at: ctx.timestamp, status: "PENDING", transcript: disputeText(ctx, row), result: "Authorized; waiting for email delivery", messageId: undefined });
   logStep(ctx, row, { action: "AUTHORIZE_REVIEW_EMAIL", tool: "requestBillingReviewEmail", input: `${questioned.length} findings`, output: "Email authorized", title: "You authorized provider review", detail: "Waiting for email delivery", source: "You" });
   setStatus(ctx, row, "WAITING_FOR_PROVIDER");
 });
@@ -264,6 +306,8 @@ export const reset_demo = spacetimedb.reducer((ctx) => {
     for (const item of [...ctx.db.timelineEvent.caseId.filter(row.id)]) ctx.db.timelineEvent.id.delete(item.id);
     for (const item of [...ctx.db.auditEntry.caseId.filter(row.id)]) ctx.db.auditEntry.id.delete(item.id);
     for (const item of [...ctx.db.communication.caseId.filter(row.id)]) { ctx.db.outboundAttempt.communicationId.delete(item.id); ctx.db.communication.id.delete(item.id); }
+    for (const item of [...ctx.db.priceComparison.caseId.filter(row.id)]) ctx.db.priceComparison.id.delete(item.id);
+    ctx.db.insuranceSummary.caseId.delete(row.id);
     for (const item of [...ctx.db.processedEmail.caseId.filter(row.id)]) ctx.db.processedEmail.messageId.delete(item.messageId);
     ctx.db.billCase.id.delete(row.id);
   }
@@ -277,3 +321,5 @@ export const my_findings = spacetimedb.view({ name: "my_findings", public: true 
 export const my_timeline = spacetimedb.view({ name: "my_timeline", public: true }, t.array(timelineEvent.rowType), (ctx) => [...ctx.db.timelineEvent.owner.filter(ctx.sender)]);
 export const my_audit_log = spacetimedb.view({ name: "my_audit_log", public: true }, t.array(auditEntry.rowType), (ctx) => [...ctx.db.auditEntry.owner.filter(ctx.sender)]);
 export const my_communications = spacetimedb.view({ name: "my_communications", public: true }, t.array(communication.rowType), (ctx) => [...ctx.db.communication.owner.filter(ctx.sender)]);
+export const my_insurance = spacetimedb.view({ name: "my_insurance", public: true }, t.array(insuranceSummary.rowType), (ctx) => [...ctx.db.insuranceSummary.owner.filter(ctx.sender)]);
+export const my_price_comparisons = spacetimedb.view({ name: "my_price_comparisons", public: true }, t.array(priceComparison.rowType), (ctx) => [...ctx.db.priceComparison.owner.filter(ctx.sender)]);

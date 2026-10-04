@@ -10,13 +10,13 @@ describe("reconcile", () => {
     const specialist = reconcile(bill, DEMO_RECORDS).find((item) => item.description === "Specialist consultation");
     expect(specialist?.clinicalStatus).toBe("NO_MATCH_FOUND");
     expect(specialist?.action).toBe("REQUEST_REVIEW");
-    expect(specialist?.lineIndex).toBe(5);
+    expect(specialist?.lineIndex).toBe(6);
     expect(specialist?.explanation).toMatch(/does not prove/i);
   });
 
-  it("supports five documented services without inventing a price comparison", () => {
+  it("supports six documented services without inventing a price comparison", () => {
     const result = reconcile(bill, DEMO_RECORDS);
-    expect(result.filter((item) => item.clinicalStatus === "SUPPORTED")).toHaveLength(5);
+    expect(result.filter((item) => item.clinicalStatus === "SUPPORTED")).toHaveLength(6);
     expect(result.every((item) => item.pricingStatus === "NOT_ASSESSED")).toBe(true);
   });
 
@@ -29,6 +29,6 @@ describe("reconcile", () => {
 
   it("flags an exact duplicate line", () => {
     const doubled = { ...bill, items: [...bill.items, bill.items[1]] };
-    expect(reconcile(doubled, DEMO_RECORDS)[6].clinicalStatus).toBe("DUPLICATE_SUSPECTED");
+    expect(reconcile(doubled, DEMO_RECORDS)[7].clinicalStatus).toBe("DUPLICATE_SUSPECTED");
   });
 });
