@@ -1,4 +1,4 @@
-import type { MedicalBillCase, Transaction } from "../../types/domain";
+import type { ItemizedBill, MedicalBillCase, Transaction } from "../../types/domain";
 import type { MedicalRecordProvider } from "../medical/provider";
 import type { CommunicationProvider } from "../communications/provider";
 import { reconcile } from "../reconciliation/reconcile";
@@ -63,17 +63,23 @@ export async function analyzeCase(current: MedicalBillCase, communications: Comm
 /** Shared intake for delivered statements, including the demo inbox fallback. */
 export function receiveItemizedStatement(current: MedicalBillCase, statement: string): MedicalBillCase {
   if (current.status !== "WAITING_FOR_BILL") throw new Error("Case is not waiting for an itemized statement");
+  return receiveParsedBill(current, parseItemizedBill(statement), "statement");
+}
+
+/** Common validation and analysis for an already-parsed bill, whether it came from a plain-text statement or a PDF. */
+export function receiveParsedBill(current: MedicalBillCase, bill: ItemizedBill, via: "statement" | "pdf" = "statement"): MedicalBillCase {
+  if (current.status !== "WAITING_FOR_BILL") throw new Error("Case is not waiting for an itemized statement");
   const request = current.communications.find((item) => item.type === "ITEMIZED_BILL_REQUEST");
   if (!request) throw new Error("Itemized bill request is missing");
-  const bill = parseItemizedBill(statement);
   if (bill.provider !== current.provider.name) throw new Error("Statement provider does not match this case");
   const next = structuredClone(current);
   next.bill = bill;
   const savedRequest = next.communications.find((item) => item.id === request.id)!;
   savedRequest.status = "COMPLETED";
   savedRequest.result = `Invoice ${next.bill.invoiceId} received`;
-  record(next, "RECEIVE_BILL", "getItemizedBill", request.id, next.bill.invoiceId, "Itemized bill received", `Statement for invoice ${next.bill.invoiceId}`, "Hospital billing");
-  record(next, "PARSE_BILL", "parseItemizedBill", next.bill.invoiceId, `${next.bill.items.length} charges`, "Itemized bill parsed", `${next.bill.items.length} charges extracted from the provider statement`, "Case agent");
+  const pdf = via === "pdf";
+  record(next, "RECEIVE_BILL", pdf ? "receiveBillPdf" : "getItemizedBill", request.id, next.bill.invoiceId, "Itemized bill received", pdf ? `PDF for invoice ${next.bill.invoiceId} texted by the hospital` : `Statement for invoice ${next.bill.invoiceId}`, "Hospital billing");
+  record(next, "PARSE_BILL", pdf ? "parsePdfBill" : "parseItemizedBill", next.bill.invoiceId, `${next.bill.items.length} charges`, "Itemized bill parsed", `${next.bill.items.length} charges extracted from the provider ${pdf ? "PDF" : "statement"}`, "Case agent");
   next.status = "ANALYZING";
   next.findings = comparePrices(next.bill, reconcile(next.bill, next.medicalRecords), loadPriceReferences(), next.insurance);
   next.financialReview = assessPatientBalance(next.bill, next.transaction.amount, next.insurance);

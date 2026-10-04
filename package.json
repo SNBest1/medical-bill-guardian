@@ -16,7 +16,8 @@
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "spectrum-ts": "12.10.1",
-    "three": "0.186.1"
+    "three": "0.186.1",
+    "unpdf": "1.8.1"
   },
   "devDependencies": {
     "@types/node": "22.18.6",
