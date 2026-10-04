@@ -13,6 +13,7 @@ import IngestProviderBillEmailReducer from "../ingest_provider_bill_email_reduce
 import IngestProviderReviewEmailReducer from "../ingest_provider_review_email_reducer";
 import InvestigateCaseReducer from "../investigate_case_reducer";
 import RecordOutboundEmailReducer from "../record_outbound_email_reducer";
+import RecordOutboundFailureReducer from "../record_outbound_failure_reducer";
 import RequestItemizedBillEmailReducer from "../request_itemized_bill_email_reducer";
 import ResetDemoReducer from "../reset_demo_reducer";
 import ScanDemoPaymentReducer from "../scan_demo_payment_reducer";
@@ -24,6 +25,7 @@ export type IngestProviderBillEmailParams = __Infer<typeof IngestProviderBillEma
 export type IngestProviderReviewEmailParams = __Infer<typeof IngestProviderReviewEmailReducer>;
 export type InvestigateCaseParams = __Infer<typeof InvestigateCaseReducer>;
 export type RecordOutboundEmailParams = __Infer<typeof RecordOutboundEmailReducer>;
+export type RecordOutboundFailureParams = __Infer<typeof RecordOutboundFailureReducer>;
 export type RequestItemizedBillEmailParams = __Infer<typeof RequestItemizedBillEmailReducer>;
 export type ResetDemoParams = __Infer<typeof ResetDemoReducer>;
 export type ScanDemoPaymentParams = __Infer<typeof ScanDemoPaymentReducer>;

@@ -41,6 +41,7 @@ import IngestProviderBillEmailReducer from "./ingest_provider_bill_email_reducer
 import IngestProviderReviewEmailReducer from "./ingest_provider_review_email_reducer";
 import InvestigateCaseReducer from "./investigate_case_reducer";
 import RecordOutboundEmailReducer from "./record_outbound_email_reducer";
+import RecordOutboundFailureReducer from "./record_outbound_failure_reducer";
 import RequestItemizedBillEmailReducer from "./request_itemized_bill_email_reducer";
 import ResetDemoReducer from "./reset_demo_reducer";
 import ScanDemoPaymentReducer from "./scan_demo_payment_reducer";
@@ -120,6 +121,7 @@ const reducersSchema = __reducers(
   __reducerSchema("ingest_provider_review_email", IngestProviderReviewEmailReducer),
   __reducerSchema("investigate_case", InvestigateCaseReducer),
   __reducerSchema("record_outbound_email", RecordOutboundEmailReducer),
+  __reducerSchema("record_outbound_failure", RecordOutboundFailureReducer),
   __reducerSchema("request_itemized_bill_email", RequestItemizedBillEmailReducer),
   __reducerSchema("reset_demo", ResetDemoReducer),
   __reducerSchema("scan_demo_payment", ScanDemoPaymentReducer),

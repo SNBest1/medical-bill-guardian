@@ -135,6 +135,13 @@ export type MyMedicalRecords = __Infer<typeof MyMedicalRecords>;
 export const MyTimeline = __t.object("MyTimeline", {});
 export type MyTimeline = __Infer<typeof MyTimeline>;
 
+export const OutboundAttempt = __t.object("OutboundAttempt", {
+  communicationId: __t.u64(),
+  attempts: __t.u32(),
+  lastError: __t.string(),
+});
+export type OutboundAttempt = __Infer<typeof OutboundAttempt>;
+
 export const ProcessedEmail = __t.object("ProcessedEmail", {
   messageId: __t.string(),
   caseId: __t.u64(),
