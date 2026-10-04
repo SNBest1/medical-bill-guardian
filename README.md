@@ -80,6 +80,13 @@ When `FISH_API_KEY`, `FISH_AGENT_ID`, `FISH_PHONE_NUMBER_ID`, and `FISH_TEST_TO_
 
 Safety: the destination comes only from `FISH_TEST_TO_NUMBER`, must be valid E.164, and must equal `DEMO_HOSPITAL_PHONE`; it is never accepted from the browser, a request, or case data. Numbers are masked to the last four digits and keys never leave the server. The body sent to Fish is `agent_id`, `phone_number_id`, `to_number`, and `dynamic_variables` (`patient_name`, `hospital_name`, `payment_amount`, `payment_date`, `service_date`, `guardian_line`, `guardian_line_spoken`), plus an `Idempotency-Key` so a retry cannot place a second call. `SPECTRUM_HOSPITAL_ASSIGNED_LINE` is the number the hospital is asked to text. Agent prompt and variable table: [docs/FISH_AGENT_PROMPT.md](docs/FISH_AGENT_PROMPT.md). Tests use a fake `fetch`; nothing was run against live Fish.
 
+
+### Real billing-review call and sandbox refund (optional)
+
+Set `FISH_REVIEW_AGENT_ID` (a second published Fish agent, prompt in [docs/FISH_REVIEW_AGENT_PROMPT.md](docs/FISH_REVIEW_AGENT_PROMPT.md)) and the review stops being a script. The patient's **Authorize billing review call** click places a real call to the same approved hospital stand-in (`POST /api/cases/:id/request-review {"authorized":true}`); the case waits in `WAITING_FOR_PROVIDER` while the page polls `POST /api/cases/:id/settle-review`, which reads the call's transcript from `GET /v1/agent/sessions/{id}` and shows it live. Only after the call ends do the hospital side's own words decide the outcome (removed, verified, or unchanged); amounts always come from the bill, and a call with no clear answer leaves the bill unchanged. **Use the rehearsed replay instead** (`{"rehearsed":true}`) is the scripted fallback and rings nothing. The bill-request call's transcript is also shown while waiting for the text.
+
+With `NESSIE_SANDBOX_DISCOVERY=true`, **Receive the refund** executes a real transfer in the Capital One Nessie sandbox from a hospital account to the patient's account and reads the balance back before and after. Run `node scripts/nessie-seed.mjs --apply` once to create the three patients and the hospital's refund account. It is fake money in a mock bank, labeled as such; without seeded accounts the button records the fixed synthetic credit as before.
+
 ### Judge demo patients (FinchNode)
 
 The picker offers FinchNode's own synthetic patients, seen at one hospital, Northstar Health System. FinchNode's sandbox cannot hold custom patients, so the stories follow the fixed records. The itemized statement is generated from each patient's real records, not written by hand: every charge except the one deliberately unsupported charge is backed by a record FinchNode returned for the service date.
