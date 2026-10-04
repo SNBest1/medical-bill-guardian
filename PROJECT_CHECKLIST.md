@@ -20,13 +20,15 @@ Status 2026-10-03. All checked items are implemented; a deployed service is not 
 
 ## Still needed for live email
 
-- [ ] Verify that the Resend key can send from `billing@nipunsaini.com` to the authorized test inbox. Direct API requests from this machine returned Cloudflare 1010, so delivery is unverified.
-- [ ] Send and receive one synthetic PDF test through the deployed Worker; confirm the outbound communication becomes `SENT` and the reply is parsed into bill items.
+- [ ] Verify that the Resend key can send from `billing@nipunsaini.com` to the authorized test inbox. Direct requests from this machine returned Cloudflare 1010 (bot signature); the Worker now sends a `User-Agent` and reports Resend's error text. Waiting on a Worker deploy, which needs the owner's go-ahead.
+- [ ] Send and receive one synthetic PDF test through the deployed Worker; confirm the outbound communication becomes `SENT` and the reply is parsed into bill items. The cloud DB had no email rows on 2026-10-04, so enabling sending would send only the test row.
 - [ ] Enable `EMAIL_SEND_ENABLED=true` and `VITE_EMAIL_ENABLED=true` only after the above test. Both are currently false.
 - [x] Configure the existing synthetic Nessie sandbox credentials as Worker secrets.
-- [ ] Obtain a consented FinchNode subject for the same patient. Until then, a Nessie case has no clinical evidence and the separate mock case carries the complete demo.
-- [ ] Parse real provider PDF layouts, scans, and links; current parser accepts one text PDF using the synthetic statement grammar only.
-- [ ] Add durable retry/dead-letter handling and provider identity verification beyond a sender-address filter.
+- [ ] Obtain a consented FinchNode subject for the same patient. A third sandbox Connect simulation (`cs_b8b6cff2ecdb15393067`, 2026-10-04) also stayed in `syncing` with no subject, like the earlier two; this is a FinchNode sandbox limitation. Scripts: `scripts/finchnode-start-session.mjs`, `scripts/finchnode-resolve-session.mjs`.
+- [x] Parse more provider PDF layouts and links: text is rebuilt from positioned fragments, and a reply may link one PDF on a `BILL_PDF_ALLOWED_HOSTS` host (https, no redirects, size cap).
+- [ ] Scanned (image-only) PDFs: still need manual review; there is no OCR.
+- [x] Durable retry and dead-letter: failed sends are recorded in `outbound_attempt`; after 3 the request is FAILED and the patient is told. One failure no longer blocks the outbox. A rolling 24-hour cap (`EMAIL_DAILY_LIMIT`, default 20) bounds visitor-triggered mail to the test inbox.
+- [x] Provider identity beyond the From address: replies are ingested only with Cloudflare's `dmarc=pass` aligned to the sender's domain.
 
 ## Before real patient use
 
