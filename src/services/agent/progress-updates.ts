@@ -15,22 +15,20 @@ const money = (amount: number) => `$${amount.toLocaleString()}`;
 export function currentMilestone(c: MedicalBillCase): { milestone: ProgressMilestone; text: string } | null {
   const patient = c.scenarioId ? getScenario(c.scenarioId)?.patient.firstName : undefined;
   const who = patient ? `${patient}’s ${c.provider.name}` : c.provider.name;
-  const name = c.scenarioId ? getScenario(c.scenarioId)?.patient.firstName : undefined;
-  const approve = name ? `YES ${name}` : "YES";
-  const decline = name ? `NO ${name}` : "NO";
+  if (c.recovery?.status === "REFUND_RECEIVED" && c.recovery.bankSource === "nessie") return { milestone: "REFUND_RECEIVED", text: `Update on your ${who} bill: a ${money(c.recovery.amount)} refund deposit is verified in the Nessie sandbox. ${c.recovery.calculatedBalanceAfter === undefined ? "Calculated demo balance is unavailable; check the bank history." : `Calculated demo balance left: ${money(c.recovery.calculatedBalanceAfter)}.`} No real money moved.` };
   if (c.recovery?.status === "REFUND_RECEIVED") return { milestone: "REFUND_RECEIVED", text: `Update on your ${who} bill: the ${money(c.recovery.amount)} demo refund credit has arrived (synthetic, no real money moved). This case is closed.` };
   switch (c.status) {
-    case "REQUESTING_BILL": return { milestone: "RECORDS_FOUND", text: `Update on your ${who} bill: I found ${c.medicalRecords.length} medical ${c.medicalRecords.length === 1 ? "record" : "records"} from around your ${money(c.transaction.amount)} payment. Reply ${approve} to authorize a real call to the demo hospital to ask for the itemized bill, or ${decline} to hold off. Nothing has been sent to the hospital yet.` };
+    case "REQUESTING_BILL": return { milestone: "RECORDS_FOUND", text: `Update on your ${who} bill: I found ${c.medicalRecords.length} medical ${c.medicalRecords.length === 1 ? "record" : "records"} from around your ${money(c.transaction.amount)} payment. May I call the demo hospital to request the itemized bill? Tell me "yes, request the itemized bill" or "hold off". This authorizes that call only. Nothing has been sent to the hospital yet.` };
     case "WAITING_FOR_BILL": return { milestone: "BILL_REQUESTED", text: `Update on your ${who} bill: I asked hospital billing for the itemized statement. I'm waiting for it and will text you the moment it arrives.` };
     case "REVIEW_REQUIRED": {
       const flagged = c.findings.filter((finding) => finding.action === "REQUEST_REVIEW");
       const supported = c.findings.filter((finding) => finding.clinicalStatus === "SUPPORTED").length;
-      return { milestone: "REVIEW_NEEDED", text: `Update on your ${who} bill: the itemized bill arrived and I checked all ${c.findings.length} charges. ${supported} match your records. ${flagged.length} (${money(flagged.reduce((sum, finding) => sum + finding.amount, 0))}) I couldn't verify, which isn't proof of an error. I won't contact billing about ${flagged.length === 1 ? "it" : "them"} until you approve. Reply ${approve} to approve, or ${decline} to leave it.` };
+      return { milestone: "REVIEW_NEEDED", text: `Update on your ${who} bill: the itemized bill arrived and I checked all ${c.findings.length} charges. ${supported} match your records. ${flagged.length} (${money(flagged.reduce((sum, finding) => sum + finding.amount, 0))}) I couldn't verify, which isn't proof of an error. May I call hospital billing to ask them to verify ${flagged.length === 1 ? "that charge" : "those charges"}? Tell me "yes, call them and review the bill" or "hold off". I'll only request a review; I won't approve payments.` };
     }
     case "WAITING_FOR_PROVIDER": return { milestone: "HOSPITAL_CONTACTED", text: `Update on your ${who} bill: you approved the review and I've contacted hospital billing. They haven't given a final answer yet; I'll text you when they do.` };
     case "USER_NOTIFIED": {
       const r = c.resolution;
-      if (c.recovery?.status === "REFUND_PENDING" && c.recovery.simulated) return { milestone: "REFUND_OFFER", text: `Update on your ${who} bill: hospital billing corrected the bill${r ? ` from ${money(r.originalTotal)} to ${money(r.correctedTotal)}` : ""}. Your ${money(c.recovery.amount)} demo refund is ready. Want me to send the demo credit back now? Reply YES ${name ?? ""} or SEND IT, or NO to hold off. This is a synthetic credit; no real money moves.` };
+      if (c.recovery?.status === "REFUND_PENDING" && c.recovery.simulated) return { milestone: "REFUND_OFFER", text: `Update on your ${who} bill: hospital billing corrected the bill${r ? ` from ${money(r.originalTotal)} to ${money(r.correctedTotal)}` : ""}. Your ${money(c.recovery.amount)} demo refund is ready. Want me to send the demo credit back now? Tell me "send the refund" or "hold off". This is a synthetic credit; no real money moves.` };
       return { milestone: "OUTCOME", text: r ? `Update on your ${who} bill: hospital billing responded. Your bill went from ${money(r.originalTotal)} to ${money(r.correctedTotal)}${r.adjustment > 0 ? ` (${money(r.adjustment)} correction)` : ""}. Text STATUS any time for an update.` : `Update on your ${who} bill: the review is finished. Text STATUS any time for an update.` };
     }
     default: return null;

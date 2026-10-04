@@ -16,6 +16,7 @@ export class CaseStore {
     this.db.exec("CREATE TABLE IF NOT EXISTS statement_inbox (message_id TEXT PRIMARY KEY, case_id TEXT NOT NULL, data TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', received_at TEXT NOT NULL, error TEXT)");
     this.db.exec("CREATE TABLE IF NOT EXISTS photon_outbox (operation_key TEXT PRIMARY KEY, status TEXT NOT NULL, message_id TEXT, updated_at TEXT NOT NULL)");
     if (!(this.db.prepare("PRAGMA table_info(photon_outbox)").all() as { name: string }[]).some((column) => column.name === "error")) this.db.exec("ALTER TABLE photon_outbox ADD COLUMN error TEXT");
+    this.db.exec("CREATE TABLE IF NOT EXISTS bank_refunds (payment_id TEXT PRIMARY KEY, amount REAL NOT NULL, balance_before REAL NOT NULL, attempted_at TEXT NOT NULL)");
     this.db.exec("CREATE TABLE IF NOT EXISTS patient_replies (operation_key TEXT PRIMARY KEY, text TEXT NOT NULL)");
     this.db.exec("CREATE TABLE IF NOT EXISTS command_inbox (message_id TEXT PRIMARY KEY, status TEXT NOT NULL, received_at TEXT NOT NULL)");
     this.db.exec("CREATE TABLE IF NOT EXISTS bill_link_inbox (message_id TEXT PRIMARY KEY, status TEXT NOT NULL, detail TEXT, received_at TEXT NOT NULL)");
@@ -135,6 +136,13 @@ export class CaseStore {
 
   pendingStatements(): PhotonStatement[] {
     return (this.db.prepare("SELECT data FROM statement_inbox WHERE status = 'PENDING' ORDER BY received_at LIMIT 25").all() as { data: string }[]).map((row) => JSON.parse(row.data));
+  }
+
+  bankRefundAttempt(paymentId: string): { amount: number; balance_before: number } | null {
+    return this.db.prepare("SELECT amount, balance_before FROM bank_refunds WHERE payment_id = ?").get(paymentId) as { amount: number; balance_before: number } | undefined ?? null;
+  }
+  claimBankRefund(paymentId: string, amount: number, balanceBefore: number): boolean {
+    return this.db.prepare("INSERT OR IGNORE INTO bank_refunds VALUES (?, ?, ?, ?)").run(paymentId, amount, balanceBefore, new Date().toISOString()).changes === 1;
   }
 
   queuePatientReply(key: string, text: string): void {

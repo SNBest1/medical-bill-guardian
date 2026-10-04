@@ -5,7 +5,7 @@ try { loadEnvFile(".env"); } catch {}
 const { FISH_API_KEY: key, FISH_AGENT_ID: agent, FISH_RECEIPT_TOKEN: token, FISH_RECEIPT_URL: url } = process.env;
 if (!key || !agent || !token || token.length < 32 || !url?.startsWith("https://")) throw new Error("Set Fish agent credentials, FISH_RECEIPT_TOKEN, and HTTPS FISH_RECEIPT_URL");
 const request = async (path, method = "GET", body) => {
-  const response = await fetch(`https://api.fish.audio/v1/agent/${path}`, { method, headers: { authorization: `Bearer ${key}`, "content-type": "application/json" }, ...(body ? { body: JSON.stringify(body) } : {}) });
+  const response = await fetch(`https://api.fish.audio/v1/agent/${path}`, { method, headers: { authorization: `Bearer ${key}`, "content-type": "application/json" }, ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(15000) });
   if (!response.ok) throw new Error(`Fish ${method} failed (${response.status}); no call was placed`);
   return response.json();
 };
@@ -17,8 +17,15 @@ const tool = {
   content_type: "application/json", body_template: '{"case_id":"{{case_id}}","attempt_id":"{{attempt_id}}"}', headers: [{ name: "Authorization", value: `Bearer ${token}`, kind: "authorization_bearer" }], timeout_seconds: 15, error_handling: "passthrough", expects_response: true, execution_mode: "blocking",
 };
 let toolId;
-if (existsSync("data/fish-receipt-tool.json")) { toolId = JSON.parse(readFileSync("data/fish-receipt-tool.json")).id; await request(`tools/${toolId}`, "PATCH", tool); }
+if (existsSync("data/fish-receipt-tool.json")) { toolId = JSON.parse(readFileSync("data/fish-receipt-tool.json")).id; await request(`tools/${toolId}`, "PATCH", { url }); }
 else { const created = await request("tools", "POST", tool); toolId = created.id ?? created.tool_id ?? created._id; if (!toolId) throw new Error("Fish did not return a tool id"); writeFileSync("data/fish-receipt-tool.json", JSON.stringify({ id: toolId })); }
+if (process.argv.includes("--refresh-url")) {
+  const savedTool = await request(`tools/${toolId}`);
+  if (savedTool.url !== url || !config.tools.enabled || !config.tools.tool_ids.includes(toolId)) throw new Error("Receipt tool is not attached and enabled; complete the initial Fish setup first");
+  await request(`agents/${agent}/publish`, "POST", { version_title: "Refresh demo receipt URL" });
+  console.log("Fish receipt URL updated and published. Agent prompt unchanged; no call placed.");
+  process.exit(0);
+}
 const doc = readFileSync("docs/FISH_AGENT_PROMPT.md", "utf8");
 const systemPrompt = doc.split("## System prompt")[1].split("```")[1].trim();
 await request(`agents/${agent}/config`, "PATCH", { prompt: { system_prompt: systemPrompt }, tools: { enabled: true, tool_ids: [...new Set([...config.tools.tool_ids, toolId])] } });

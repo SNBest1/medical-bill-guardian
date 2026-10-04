@@ -17,7 +17,7 @@ export type TextSender = (phone: string, text: string) => Promise<string>;
 /** Fixed templates only: arbitrary patient text is never echoed back. */
 function replyText(outcome: Awaited<ReturnType<typeof runAgentCommand>>): string {
   // The direct reply must explain the approval gate even if a separate progress update fails or the worker is stopped.
-  if (outcome.kind === "started" && outcome.case.status === "REQUESTING_BILL") return `I retrieved ${outcome.case.medicalRecords.length} available medical records for ${outcome.scenario.patient.firstName}'s bill. I'm waiting for your approval; no hospital call has been placed. Reply YES ${outcome.scenario.patient.firstName} to authorize a real call to the demo hospital to request the itemized bill, or NO ${outcome.scenario.patient.firstName} to hold off.`;
+  if (outcome.kind === "started" && outcome.case.status === "REQUESTING_BILL") return currentMilestone(outcome.case)!.text;
   if (outcome.kind === "started" && outcome.resumed) return currentMilestone(outcome.case)?.text ?? `Your ${outcome.scenario.patient.firstName} investigation is saved at ${outcome.case.status.toLowerCase().replaceAll("_", " ")}. Reply STATUS for an update or I’M DONE to leave.`;
   if (outcome.kind === "started") return `Starting the investigation into ${outcome.scenario.patient.firstName}'s hospital bill now.`;
   const names = (outcome.kind === "ambiguous" ? outcome.options : scenarios).map((scenario) => scenario.patient.firstName);

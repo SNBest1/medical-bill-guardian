@@ -1,0 +1,10 @@
+.git/
+.claude/
+node_modules/
+.next/
+data/
+.env
+.env.*
+*.tsbuildinfo
+**/* 2.*
+**/* 3.*

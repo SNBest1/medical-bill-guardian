@@ -25,3 +25,9 @@ The Relay CLI is pinned in `devDependencies` and runs from `./node_modules/.bin/
 `src/proxy.ts` blocks all API and case routes when `DEMO_MODE=false`; remove this guard only after implementing user identity, per-patient consent, encrypted storage, and the live communication adapter.
 
 `src/app/api` contains the route handlers; `src/components/Dashboard.tsx` and `CaseView.tsx` present the demo. Next.js runs on port 3000. Start with `npm ci`, `cp .env.example .env`, `npm run dev`. Verify with `npm test`, `npm run typecheck`, `npm run build`. Keep `.env`, `.env.local`, and `data/` out of Git.
+
+## Demo startup reminder
+
+For an end-to-end demo session, use `npm run demo:start` and verify `npm run demo:check`; starting Next.js alone does not bring up patient texts or the Fish PDF receipt check. Follow `docs/DEMO_STARTUP.md`. Keep the receiver, worker, receipt bridge and public tunnel running, and refresh Fish whenever the tunnel URL changes. Preserve cases and sandbox refunds unless the user explicitly requests a reset. The intended product is automatic; patient selection and stepwise controls are demo scaffolding for three personas sharing one phone.
+
+The public Vercel URL mirrors this local live backend; use `npm run demo:publish`, not a separate rehearsed Next.js deployment. Keep the production mirror on port 3100, website tunnel, receiver and worker running. See `docs/VERCEL_DEMO.md`.

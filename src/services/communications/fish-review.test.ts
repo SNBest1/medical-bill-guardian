@@ -16,6 +16,16 @@ describe("classifyReviewCall", () => {
     expect(classifyReviewCall(session("completed", ["assistant", "Please remove the charge and refund it."], ["user", "Okay, we will remove that charge."]))).toBe("REMOVED");
     expect(classifyReviewCall(session("completed", ["assistant", "Can you remove it? Is it a duplicate?"]))).toBe("INCONCLUSIVE");
   });
+  it("recognizes a bill included by mistake despite a mention of documentation", () => {
+    expect(classifyReviewCall(session("completed", ["user", "Yeah. This is documentation. It was included by mistake."]))).toBe("REMOVED");
+  });
+  it("uses the representative's explicit confirmation of the refund", () => {
+    expect(classifyReviewCall(session("completed", ["assistant", "Just to confirm, the charge will be removed and a refund will be issued, is that right?"], ["user", "Yeah. That's correct."]))).toBe("REMOVED");
+  });
+  it("does not treat agreement to checking for a mistake as a refund promise", () => {
+    expect(classifyReviewCall(session("completed", ["assistant", "Could you check if it was included by mistake?"], ["user", "Yeah."]))).toBe("INCONCLUSIVE");
+    expect(classifyReviewCall(session("completed", ["user", "It was not included by mistake."]))).toBe("INCONCLUSIVE");
+  });
   it("never reads a refusal as a concession", () => {
     expect(classifyReviewCall(session("completed", ["user", "We can't remove that."], ["user", "It wasn't a duplicate."]))).toBe("INCONCLUSIVE");
   });

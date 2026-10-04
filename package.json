@@ -9,7 +9,10 @@
     "start": "next start",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "receipt-bridge": "node scripts/fish-receipt-bridge.mjs"
+    "receipt-bridge": "node scripts/fish-receipt-bridge.mjs",
+    "demo:start": "node scripts/demo-start.mjs",
+    "demo:check": "node scripts/demo-start.mjs --check",
+    "demo:publish": "node scripts/demo-publish.mjs"
   },
   "dependencies": {
     "animejs": "4.5.0",

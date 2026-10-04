@@ -84,7 +84,7 @@ export function transcriptOf(session: FishSession): string {
 export type ReviewOutcome = "REMOVED" | "VERIFIED" | "INCONCLUSIVE";
 
 const NEGATION = /\b(not|no|never|cannot|can't|cant|won't|wont|wouldn't|unable|isn't|wasn't|don't|didn't|aren't|haven't)\b|n't/i;
-const REMOVAL = /\b(remov(e|ed|ing)|waiv(e|ed|ing)|credit(ed|ing)?|refund(ed|ing)?|revers(e|ed|ing)|take (it|that|this) off|taking (it|that|this) off|duplicat(e|ed)|adjust(ed|ing)?)\b/i;
+const REMOVAL = /\b(remov(e|ed|ing)|waiv(e|ed|ing)|credit(ed|ing)?|refund(ed|ing)?|revers(e|ed|ing)|(included|added|charged|billed) (by mistake|in error|accidentally)|billing (mistake|error)|take (it|that|this) off|taking (it|that|this) off|duplicat(e|ed)|adjust(ed|ing)?)\b/i;
 const VERIFICATION = /\b(valid|legitimate|documented|documentation|signed order|on file|located|found (it|the|a)|stands?|will stand|justified|was performed|was done|correct charge)\b/i;
 
 const sentences = (text: string) => text.split(/(?<=[.!?])\s+|\n+/).map((sentence) => sentence.trim()).filter(Boolean);
@@ -97,10 +97,20 @@ const sentences = (text: string) => text.split(/(?<=[.!?])\s+|\n+/).map((sentenc
  * INCONCLUSIVE, which the app reports as unchanged, never as a win.
  */
 export function classifyReviewCall(session: FishSession): ReviewOutcome {
+  // A short confirmation counts only immediately after the agent explicitly confirms
+  // a removal/refund. Agreement with a request to check records is not a concession.
+  const messages = session.items.filter((item) => item.type === "message" && typeof item.content === "string");
+  const confirmedRemoval = messages.some((item, index) => {
+    const previous = messages[index - 1];
+    return item.role === "user" && /^(yeah[,.]?\s*)?(yes|yeah|correct|that['’]s correct|that is correct|confirmed|exactly)[.!]?$/i.test(item.content!.trim())
+      && previous?.role === "assistant" && /\b(confirm|is that right)\b/i.test(previous.content!)
+      && /\b(will be removed|will be issued|will refund|will remove|corrected total)\b/i.test(previous.content!)
+      && REMOVAL.test(previous.content!) && !NEGATION.test(previous.content!);
+  });
   const spoken = session.items.filter((item) => item.type === "message" && item.role === "user" && typeof item.content === "string").flatMap((item) => sentences(item.content!));
   if (!spoken.length) return "INCONCLUSIVE";
   const affirmative = spoken.filter((sentence) => !NEGATION.test(sentence));
-  if (affirmative.some((sentence) => REMOVAL.test(sentence))) return "REMOVED";
+  if (confirmedRemoval || affirmative.some((sentence) => REMOVAL.test(sentence))) return "REMOVED";
   if (affirmative.some((sentence) => VERIFICATION.test(sentence))) return "VERIFIED";
   return "INCONCLUSIVE";
 }

@@ -55,7 +55,7 @@ describe("progress updates", () => {
     const { sent, send } = sender();
     expect(await sendProgressUpdate(store, c, send)).toBe("sent");
     expect(sent[0]).toContain("Harriet");
-    expect(sent[0]).toContain("YES Harriet");
+    expect(sent[0]).toContain("yes, request the itemized bill");
     expect(await sendPendingProgressUpdates(store, send)).toBe(0);
     const next = { ...c, status: "WAITING_FOR_BILL" as const };
     store.save(next);

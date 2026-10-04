@@ -2,6 +2,10 @@
 
 Medical Bill Guardian is a local-first hackathon web app that opens a case when a healthcare payment appears, compares an itemized bill with available medical evidence, and asks the patient before contacting billing. Its built-in demo completes the University Hospital story with no hospital, bank, or medical-record API calls.
 
+## Start every demo session
+
+Run `npm run demo:start` and keep its terminal open. It starts/reuses the app, text receiver, worker and receipt bridge, repairs an offline tunnel, refreshes Fish’s receipt-tool URL, and verifies readiness. Use `npm run demo:check` before presenting. [Full startup checklist and troubleshooting](docs/DEMO_STARTUP.md).
+
 ## Architecture
 
 ```text
@@ -146,3 +150,15 @@ The worker also reads already authorized live review calls and prepares resolved
 The Fish hospital agent can converse and check whether the PDF arrived using the same active case as the website. Its read-only receipt webhook separates text arrival, PDF processing, successful reading, and failure; case and run IDs prevent stale calls confirming a previous bill. Run `npm run receipt-bridge` (loopback port 3211), expose that port through an HTTPS tunnel, set `FISH_RECEIPT_TOKEN` and `FISH_RECEIPT_URL` in the ignored environment, and run `node scripts/configure-fish-receipt.mjs`. That script attaches the tool and publishes the prompt in `docs/FISH_AGENT_PROMPT.md` without placing a call. The bridge serves only authenticated `/bill-receipt`; it does not expose the website or other APIs. A quick tunnel is temporary: keep it and the bridge running, and rerun the configuration script whenever its URL changes. Original Fish configuration is saved under ignored `data/` for rollback.
 
 When a synthetic refund is pending, the outcome text offers to send the demo credit. The approved patient can reply `YES Morgan` (or the current patient name), `YES`, or `SEND IT`; `NO` holds it. The same guarded `receiveDemoRefund` operation updates the website and sends the credit confirmation, without clicking the website button. Repeated messages cannot create another credit. This records a synthetic credit only, not a real bank transfer.
+
+### Bank history and refund mirroring
+
+With `NESSIE_SANDBOX_DISCOVERY=true`, the bank panels read each seeded patient's account balance, purchases, deposits, and withdrawals directly from Nessie. `node scripts/nessie-history.mjs` adds and verifies a payroll/pension/family deposit and an everyday withdrawal for the three fictional patients, without duplicating existing entries. API failures retain the last read with an error message; they never substitute a local fictional balance.
+
+The approved refund action (website or patient text) creates a completed Nessie deposit for the exact confirmed correction, reads it back, and stores its actual transaction ID and reported balance. A durable attempt record and the deposit's original purchase reference prevent a second credit after double clicks, redelivery, crashes, or demo resets. Uncertain writes require inspection instead of automatic re-posting. Resetting a local investigation does not erase Nessie history.
+
+Verified sandbox limitation: transaction creation stores ledger entries but does not automatically update the account's `balance`. Account updates ignore a supplied balance. The main “Balance left” display is calculated from explicit fictional starting funds ($2,200 Morgan, $4,100 Harriet, $1,600 Theo) plus completed Nessie deposits minus completed or pending payments. Pending deposits and cancelled payments do not change it. A verified refund deposit increases this calculated balance. Nessie’s unchanged reported balance is retained in source details; it is never presented as the calculated balance. No real-money transfer is claimed. Without sandbox discovery, the panels and refund remain explicitly local simulations.
+
+## Public Devpost demo
+
+[Open the hosted demo](https://medical-bill-guardian.vercel.app). The public website mirrors the same local cases, Fish calls, patient messages and Nessie refunds. Keep the computer and demo services running; `npm run demo:start` restores the public connection. See [Vercel deployment notes](docs/VERCEL_DEMO.md).

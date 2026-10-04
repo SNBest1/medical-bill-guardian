@@ -156,8 +156,8 @@ describe("patient reply text", () => {
     expect(saved.status).toBe("REQUESTING_BILL");
     expect(saved.communications).toHaveLength(0);
     expect(sent).toHaveLength(1);
-    expect(sent[0].text).toContain("no hospital call has been placed");
-    expect(sent[0].text).toContain("YES Morgan");
+    expect(sent[0].text).toContain("Nothing has been sent to the hospital yet");
+    expect(sent[0].text).toContain("yes, request the itemized bill");
   });
   it("keeps Harriet's approval instruction in the direct reply when progress updates are enabled but unavailable", async () => {
     vi.stubEnv("PHOTON_UPDATE_TEXTS", "true");
@@ -169,9 +169,9 @@ describe("patient reply text", () => {
     expect(store.list()[0].status).toBe("REQUESTING_BILL");
     expect(store.list()[0].communications).toHaveLength(0);
     expect(sent).toHaveLength(1);
-    expect(sent[0].text).toContain("YES Harriet");
-    expect(sent[0].text).toContain("NO Harriet");
-    expect(sent[0].text).toContain("real call to the demo hospital");
+    expect(sent[0].text).toContain("yes, request the itemized bill");
+    expect(sent[0].text).toContain("hold off");
+    expect(sent[0].text).toContain("call the demo hospital");
     expect(sent[0].text).not.toContain("I'll text you at each step");
     await handlePatientCommand(store, command("investigate Harriet"), { ...providers(), communications }, { replyEnabled: true, patientPhone: patient, send });
     expect(sent).toHaveLength(1);

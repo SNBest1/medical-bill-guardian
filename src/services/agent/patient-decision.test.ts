@@ -7,6 +7,7 @@ import { handlePatientCommand, type TextSender } from "./patient-command";
 import { classifyPatientReply } from "./patient-intent";
 import { handlePatientDecision } from "./patient-decision";
 import { runAgentCommand } from "./run-command";
+import { analyzeCase } from "./orchestrator";
 
 const patient = "+15555550100";
 const comms = () => new MockCommunicationProvider(Number.POSITIVE_INFINITY);
@@ -22,6 +23,20 @@ describe("patient reply intents", () => {
     expect(classifyPatientReply("no")).toEqual({ kind: "decline" });
     expect(classifyPatientReply("Status?")).toEqual({ kind: "status" });
     for (const text of ["investigate Morgan's bill", "yes please call them and also dispute everything", "", "morgan"]) expect(classifyPatientReply(text)).toBeNull();
+  });
+});
+
+describe("conversational approvals", () => {
+  it("understands explicit natural language while rejecting conditions and additional actions", () => {
+    expect(classifyPatientReply("Yes, call them and ask about the ECG")).toEqual({ kind: "approve", action: "review" });
+    for (const text of ["Please get the bill.", "Request the bill", "Yes, get the bill"]) expect(classifyPatientReply(text)).toEqual({ kind: "approve", action: "request-bill" });
+    for (const text of ["Yes, call them and ask about it.", "Call them and ask about that charge"]) expect(classifyPatientReply(text)).toEqual({ kind: "approve", action: "review" });
+    expect(classifyPatientReply("Yes, request Morgan's itemized bill")).toEqual({ kind: "approve", name: "morgan", action: "request-bill" });
+    expect(classifyPatientReply("Sure, go ahead!")).toEqual({ kind: "approve" });
+    expect(classifyPatientReply("Don't call them yet")).toEqual({ kind: "decline" });
+    expect(classifyPatientReply("No, don't call them")).toEqual({ kind: "decline" });
+    expect(classifyPatientReply("What am I approving?")).toEqual({ kind: "status" });
+    for (const text of ["yes, but only if it is free", "yes please call them and also dispute everything", "should I say yes?", "yes, call Morgan and Harriet", "yes, call them, actually don't"]) expect(classifyPatientReply(text)).toBeNull();
   });
 });
 
@@ -58,6 +73,31 @@ describe("patient decisions by text", () => {
     expect(first?.kind).toBe("approved");
     expect(store.list()[0].status).toBe("WAITING_FOR_BILL");
     expect((await handlePatientDecision(store, "yes", real))?.kind).toBe("nothing-pending");
+  });
+  it("applies an ordinary reply to the selected case and blocks a different action or patient", async () => {
+    const started = await start("Morgan");
+    if (started.kind !== "started") throw new Error("Expected Morgan");
+    store.save({ ...started.case, status: "REQUESTING_BILL", communications: [] });
+    expect((await handlePatientDecision(store, "yes, call them and ask about the ECG", comms()))?.kind).toBe("ambiguous");
+    expect((await handlePatientDecision(store, "yes, request Harriet's itemized bill", comms()))?.kind).toBe("ambiguous");
+    expect(store.get(started.case.id)?.status).toBe("REQUESTING_BILL");
+    expect((await handlePatientDecision(store, "Please get the bill.", comms()))?.kind).toBe("approved");
+    expect(store.get(started.case.id)?.status).toBe("WAITING_FOR_BILL");
+    expect((await handlePatientDecision(store, "yes, request the itemized bill", comms()))?.kind).toBe("nothing-pending");
+  });
+  it("understands an ECG review approval and makes exactly one mock billing review", async () => {
+    const started = await start("Morgan");
+    if (started.kind !== "started") throw new Error("Expected Morgan");
+    store.save(await analyzeCase(started.case, new MockCommunicationProvider(0)));
+    expect(store.activeCase()?.status).toBe("REVIEW_REQUIRED");
+    expect((await handlePatientDecision(store, "Don't call them yet", comms()))?.kind).toBe("declined");
+    expect(store.activeCase()?.status).toBe("REVIEW_REQUIRED");
+    expect((await handlePatientDecision(store, "Yes, call them and ask about it.", comms()))?.kind).toBe("approved");
+    expect(store.activeCase()?.resolution?.correctedTotal).toBe(792);
+    expect(store.activeCase()?.communications.filter((item) => item.type === "BILLING_REVIEW")).toHaveLength(1);
+    // The same call-specific reply must not accidentally approve the newly offered refund.
+    expect((await handlePatientDecision(store, "Yes, call them and ask about the ECG", comms()))?.kind).toBe("ambiguous");
+    expect(store.activeCase()?.recovery?.status).toBe("REFUND_PENDING");
   });
   it("offers and credits a pending refund through text exactly once", async () => {
     const started = await start("Morgan");
