@@ -1,32 +1,42 @@
 import { useState } from "react";
-import { ArrowRight, ArrowUpRight, Check, CircleDollarSign, HeartPulse, Play, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Check, CircleHelp, LoaderCircle } from "lucide-react";
 import type { MedicalBillCase } from "../types/domain";
+import { AppHeader } from "./AppHeader";
+import { ReceiptTrace } from "./ReceiptTrace";
+import { WorkflowRibbon } from "./WorkflowRibbon";
+import { getStatusCopy } from "./case-presentation";
 
 const money = (value: number) => `$${value.toLocaleString()}`;
-const label = (status: string) => status === "USER_NOTIFIED" ? "Review complete" : status === "REVIEW_REQUIRED" ? "Needs your review" : status === "DETECTED" ? "Ready to investigate" : "Investigating";
 
-/** Lists the caller's cases; data arrives live from SpacetimeDB views. */
+/** Presents the live cases as a receipt trail without owning backend state. */
 export function Dashboard({ cases, onOpen, onScan }: { cases: MedicalBillCase[]; onOpen: (id: string) => void; onScan: () => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-
   async function scan() {
     setBusy(true); setError("");
     try { await onScan(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Scan failed"); }
     finally { setBusy(false); }
   }
-
-  const protectedSpend = cases.reduce((sum, item) => sum + item.transaction.amount, 0);
-  const confirmedSavings = cases.reduce((sum, item) => sum + (item.resolution?.adjustment ?? 0), 0);
-  const needsReview = cases.filter((item) => item.status === "REVIEW_REQUIRED").length;
-  return <div className="shell">
-    <header className="topbar"><span className="brand"><span className="brand-mark"><HeartPulse size={20} strokeWidth={2.4} /></span><span>medical bill <strong>guardian</strong></span></span><div className="topbar-right"><span className="topbar-note">Your healthcare, clearly accounted for.</span><span className="demo-pill"><span /> Demo mode</span></div></header>
-    <main className="main dashboard">
-      <section className="hero-grid"><div className="hero-copy"><div className="eyebrow"><ShieldCheck size={15} /> A smarter second look</div><h1>Every charge<br /><em>deserves context.</em></h1><p>We connect a hospital payment to your medical record, review each line of the bill, and help you ask the right questions.</p><button className="primary-button" onClick={scan} disabled={busy}><Play size={16} fill="currentColor" /> {busy ? "Scanning transactions…" : cases.length ? "Scan again" : "Detect hospital payment"} <ArrowRight size={17} /></button>{error && <p className="error-text" role="alert">{error}</p>}</div><div className="hero-art" aria-hidden="true"><div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="hero-card"><div className="hero-card-top"><span className="tiny-dots"><i/><i/><i/></span><span>PAYMENT SIGNAL</span></div><div className="signal-line"><span /><span /><span /><span /><span /><span /><span /><span /><span /></div><div className="hero-card-bottom"><span>Transaction detected</span><strong>→</strong><span>Clarity delivered</span></div></div><span className="floating-cross">+</span></div></section>
-      <section className="metric-row" aria-label="Overview"><div className="metric"><span className="metric-icon teal"><CircleDollarSign size={19} /></span><span className="metric-label">Protected spend</span><strong>{money(protectedSpend)}</strong><small>Hospital payments being reviewed</small></div><div className="metric"><span className="metric-icon blue"><ShieldCheck size={19} /></span><span className="metric-label">Cases</span><strong>{cases.length.toString().padStart(2, "0")}</strong><small>{needsReview ? `${needsReview} waiting for your approval` : cases.length ? "Your reviews, all in one place" : "No cases yet"}</small></div><div className="metric"><span className="metric-icon amber"><Sparkles size={19} /></span><span className="metric-label">Confirmed corrections</span><strong>{money(confirmedSavings)}</strong><small>Only after provider confirmation</small></div></section>
-      <section className="cases-section"><div className="section-heading"><div><span className="section-kicker">YOUR CASES</span><h2>Billing investigations</h2></div><span className="section-count">{cases.length} total</span></div>{cases.length ? <div className="case-list">{cases.map((item) => <button type="button" className="case-card" key={item.id} onClick={() => onOpen(item.id)}><div className="case-logo"><HeartPulse size={23} /></div><div className="case-info"><strong>{item.provider.name}</strong><span>{new Date(`${item.transaction.date}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} <b>·</b> {item.label}</span></div><div className="case-amount">{money(item.transaction.amount)}<span>Original payment</span></div><div className={`status-tag ${item.status === "REVIEW_REQUIRED" ? "attention" : item.status === "USER_NOTIFIED" ? "complete" : ""}`}><span /> {label(item.status)}</div><ArrowUpRight className="case-arrow" size={21} /></button>)}</div> : <div className="empty-state"><div className="empty-icon"><ShieldCheck size={28} /></div><h3>Your next review starts with a payment.</h3><p>Scan your connected demo account to find the University Hospital charge.</p><button className="secondary-button" onClick={scan} disabled={busy}>Scan transactions <ArrowRight size={16} /></button></div>}</section>
-      <footer className="footer"><span>Medical Bill Guardian</span><span><Check size={14} /> Questions first. Confirmation before conclusions.</span></footer>
+  const featured = cases[0];
+  const reviewFinding = featured?.findings.find((finding) => finding.action === "REQUEST_REVIEW");
+  const completed = featured?.status === "USER_NOTIFIED";
+  return <div className="app-shell">
+    <AppHeader caseId={featured?.label}/>
+    <main className="landing-page">
+      {featured ? <>
+        <section className="demo-stage">
+          <div className="landing-copy"><span className="page-kicker">A SECOND LOOK, LINE BY LINE</span><h1>Your hospital bill has a <em>paper trail.</em><br/>Follow it.</h1><p>We connect the payment, the itemized statement, and the medical record—then show exactly where the story stops adding up.</p><button type="button" onClick={() => onOpen(featured.id)} className="ink-button"><span>{completed ? "Review the outcome" : featured.status === "DETECTED" ? "Trace this payment" : "Open investigation"}</span><ArrowRight size={18}/></button>{error && <p className="inline-error" role="alert">{error}</p>}<div className="architecture-line"><span>Bank signal</span><b>→</b><span>Consented records</span><b>→</b><span>Deterministic reconciliation</span><b>→</b><span>Authorized outreach</span></div></div>
+          <div className="landing-receipt"><ReceiptTrace caseData={featured}/></div>
+          <aside className="landing-evidence">
+            <div className="evidence-thread"><span>CONNECTED EVIDENCE</span><h2>{featured.medicalRecords.length ? `${featured.medicalRecords.length} records retrieved` : "Payment detected"}</h2><p>{featured.medicalRecords.length ? "Clinical records are matched only when the provider and service window align." : `${money(featured.transaction.amount)} at ${featured.provider.name} opened this case.`}</p></div>
+            <div className={`evidence-thread ${reviewFinding && !completed ? "attention" : ""}`}><span>{reviewFinding && !completed ? "OPEN QUESTION" : completed ? "PROVIDER CONFIRMED" : "NEXT STEP"}</span><h2>{reviewFinding && !completed ? reviewFinding.description : completed ? `${money(featured.resolution?.adjustment ?? 0)} removed` : getStatusCopy(featured.status)}</h2><p>{reviewFinding && !completed ? reviewFinding.explanation : completed ? featured.resolution?.explanation : "Open the case to watch the evidence trail build."}</p>{reviewFinding && !completed && <span className="thread-action">Your authorization is required →</span>}</div>
+          </aside>
+        </section>
+        <WorkflowRibbon status={featured.status}/>
+      </> : <section className="empty-landing"><span className="page-kicker">SYNTHETIC DEMONSTRATION</span><h1>Start with the payment.<br/><em>End with an answer.</em></h1><p>Scan the synthetic account to open a case and trace each charge to its evidence.</p><button type="button" className="ink-button" onClick={scan} disabled={busy}>{busy ? <LoaderCircle className="spin" size={17}/> : <CircleHelp size={17}/>}<span>{busy ? "Scanning synthetic account…" : "Scan synthetic account"}</span><ArrowRight size={18}/></button>{error && <p className="inline-error" role="alert">{error}</p>}</section>}
+      <section className="case-archive"><div className="archive-heading"><div><span className="page-kicker">CASE ARCHIVE</span><h2>Every investigation, accounted for.</h2></div><span>{cases.length.toString().padStart(2, "0")} CASES</span></div>{cases.length ? <div className="archive-list">{cases.map((item) => <button type="button" onClick={() => onOpen(item.id)} key={item.id} className="archive-row"><span className="archive-index">{item.label.slice(-2)}</span><span><strong>{item.provider.name}</strong><small>{item.transaction.date} · {item.label}</small></span><b>{money(item.transaction.amount)}</b><span className={`archive-status ${item.status === "REVIEW_REQUIRED" ? "attention" : item.status === "USER_NOTIFIED" ? "complete" : ""}`}>{getStatusCopy(item.status)}</span><ArrowRight size={17}/></button>)}</div> : <div className="archive-empty"><p>No cases yet. A synthetic scan creates one investigation.</p></div>}</section>
+      <footer className="app-footer"><span>Medical Bill Guardian</span><span><Check size={13}/> Missing evidence starts a question. Provider confirmation ends it.</span></footer>
     </main>
   </div>;
 }
