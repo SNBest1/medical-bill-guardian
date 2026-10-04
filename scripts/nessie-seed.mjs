@@ -88,4 +88,13 @@ for (const scenario of selected) {
     console.log(`  created and saved IDs to ${seedPath}`);
   }
 }
+// The hospital's own account: the payer of a refund transfer. Created once, independent of the patients.
+const hospitalKey = "shared:hospitalAccount";
+if (seeded[hospitalKey]?.accountId) console.log("\nHospital refund account already seeded; skipping");
+else {
+  console.log("\nHospital refund account (pays refund transfers)");
+  const customer = await post("/customers", { first_name: "Northstar Health System", last_name: "Patient Billing", address: { street_number: hospital.street.split(" ")[0], street_name: hospital.street.split(" ").slice(1).join(" "), city: hospital.city, state: hospital.state, zip: hospital.zip } });
+  const account = await post(`/customers/${customer._id}/accounts`, { type: "Checking", nickname: "Northstar patient refunds", rewards: 0, balance: 1000000 });
+  if (apply) { seeded[hospitalKey] = { customerId: customer._id, accountId: account._id }; save(hospitalKey, seeded[hospitalKey]); console.log(`  created and saved IDs to ${seedPath}`); }
+}
 if (!apply) console.log("\nDry run only. Re-run with --apply to send these to the Nessie sandbox.");
