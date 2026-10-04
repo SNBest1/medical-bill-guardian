@@ -1,55 +1,66 @@
 # Medical Bill Guardian
 
-Medical Bill Guardian is a local-first hackathon web app that opens a case when a healthcare payment appears, compares an itemized bill with available medical evidence, and asks the patient before contacting billing. Its built-in demo completes the University Hospital story with no hospital, bank, or medical-record API calls.
+Medical Bill Guardian opens a case for a hospital payment, checks an itemized statement against available clinical evidence, and asks the patient before requesting a billing review. The receipt trace interface comes from `codex/receipt-trace-demo`; the stateful backend comes from `feat/spacetimedb-backend`. A complete synthetic story runs without bank, medical, or email service access.
 
 ## Architecture
 
 ```text
-Nessie / mock bank → transaction scan → SQLite MedicalBillCase
-                                          ↓
-                  FinchNode / mock records + Relay/Photon / mock bill
-                                          ↓
-                 deterministic reconciliation → review authorization
-                                          ↓
-                  provider response → summary → in-app notification
+Nessie sandbox ─┐
+               ├─ Cloudflare Worker ── authenticated case import ─┐
+FinchNode ─────┘    │                                                │
+     mock fallback  │ Resend outbox / Email Routing inbox            ▼
+                    └─ MIME + bounded PDF text parsing ──────► SpacetimeDB
+                                                              private cases,
+React + Vite receipt UI ◄──── owner-filtered live views ◄───── findings, audit
 ```
 
-Next.js route handlers own case transitions and persistence. Provider interfaces keep the bank, medical-record, and communications sources replaceable. The reconciliation engine decides evidence status from structured data; an optional OpenAI Responses call can rephrase a verified result through one read-only `get_case_facts` tool. The model cannot invoke provider APIs or change financial outcomes.
+`spacetimedb/src/index.ts` owns transitions and authorization. `spacetimedb/src/logic/` parses and reconciles charges using deterministic rules. `worker/` is the trusted bridge for sandbox APIs and email; browser code never receives Nessie, FinchNode, Resend, or database publisher tokens. Each browser identity reads only its own case views. Clinical absence means **needs review**, never proof of an invalid charge. Only the labeled mock provider response creates the demo's $700 correction. Real email replies stay pending verification and cannot claim savings.
 
-SQLite stores case JSON, timeline events, audit entries, and communication outcomes in `data/guardian.sqlite`. The `data/` directory is ignored by Git because cases can contain medical information. There is no user authentication or encryption layer; use synthetic data only.
+## Local demo
 
-## Quick start
-
-Requires Node.js 22 or later.
+Requires Node.js 22+ and the [SpacetimeDB CLI](https://spacetimedb.com/install).
 
 ```bash
 npm ci
-cp .env.example .env
+npm ci --prefix spacetimedb
+cp .env.example .env.local
+spacetime start
+```
+
+In another terminal:
+
+```bash
+spacetime publish -s local --module-path spacetimedb medical-bill-guardian
+npm run spacetime:generate
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Demo mode is on by default and scans the seeded payment when the dashboard loads. Open the University Hospital case and click **Investigate this bill**. The mock provider delivers a plain-text statement after a short delay; the case parses it and compares six charges with the available records. Inspect the $700 specialist item, then click **Authorize billing review**. The mock provider confirms that charge duplicated services already included in the ER charge, and the app records the $4,120 corrected total. Expand **Activity and communications** to inspect tool steps and mock exchanges. Repeating a scan returns the same case because transaction IDs are unique.
+Open [http://localhost:5173](http://localhost:5173). The synthetic University Hospital payment appears automatically. Open the case, investigate, inspect the six bill charges and their evidence, then authorize the **simulated** review to see the confirmed $700 correction. The separate real email controls remain hidden until `VITE_EMAIL_ENABLED=true` and the Worker is configured. The local Vite server does not run the email Worker.
 
-Use **Restart demo** below a completed case summary to replay the case from payment detection.
+```bash
+npm test
+npm run build
+npm run smoke
+```
 
-Run checks with `npm test`, `npm run typecheck`, and `npm run build`.
+`npm run smoke` starts its own temporary SpacetimeDB server, exercises the case workflow and access rules, then stops it.
 
-## Demo safety and scope
+## Sandbox discovery and email
 
-- A missing clinical match means **needs review**. It never proves the charge is invalid or fraudulent.
-- The $700 correction is shown only after the mock hospital response confirms it. Price benchmarking is deliberately not claimed.
-- The authorization button is required before the mock billing review. No bank chargeback is initiated.
-- `DEMO_MODE=true` makes zero external bank, EHR, or hospital calls. If `OPENAI_API_KEY` is set, only structured synthetic case facts are sent to OpenAI for the optional summary; omit the key to keep the entire demo offline.
-- `DEMO_MODE=false` blocks all case and API routes until user identity, patient consent, encrypted storage, and a live communication adapter are implemented. Nessie and FinchNode adapter code is present for later integration, but the app does not expose real patient data in this state.
+When `VITE_SANDBOX_DISCOVERY=true`, the browser starts an idempotent scan after SpacetimeDB connects. The Worker route `POST /api/sandbox/discover` verifies the browser's SpacetimeDB bearer token against the claimed owner identity. It reads a configured Nessie customer and a consented FinchNode subject. When Nessie is unavailable, it opens the complete **MOCK** case. If Nessie succeeds but FinchNode is unavailable, it stores the bank purchase with **no** invented clinical records. FinchNode records are kept only when provider and date match the purchase. The synthetic demo case remains available alongside a discovered sandbox case, but its mock investigation and correction actions cannot run on the sandbox case.
 
-## Integration configuration
+The case owner can request a real itemized statement and, after analysis, authorize a real billing review. `worker/index.ts` polls only authorized pending email rows; `worker/resend.ts` sends to the configured test contact `nipun.saini9@gmail.com` from `billing@nipunsaini.com`, with replies to `ai@nipunsaini.com`. Cloudflare Email Routing delivers that mailbox to the Worker. It correlates the subject's case marker and extracts a single bounded PDF attachment. The parser currently accepts text PDFs following the synthetic `Invoice:`, `Provider:`, `Service date:`, charge rows, and `Total:` format. Scans, unfamiliar hospital layouts, multiple PDFs, and unverified replies remain pending for manual handling. No bank chargeback is initiated.
 
-Copy `.env.example` to `.env` for local configuration; both `.env` and `.env.local` are ignored by Git. Nessie needs a sandbox API key, customer ID, and its HTTPS API origin. The adapter reads account purchases and resolves merchant IDs to merchant names. FinchNode needs a server-side API key and a subject from a completed patient Connect consent flow; it uses the [consent-filtered records endpoint](https://finchnode.com/products/records-api). The [Relay staging API](https://docs.staging.relayapp.im/api-reference/overview) uses a server-side Agent Token and Relay handles. Its documented calls reach people in Relay chats, so a participating provider handle is needed; this does not establish ordinary hospital phone dialing. The Relay adapter has not been implemented or enabled. No credential belongs in source control.
+The deployed Worker and separate synthetic database use:
 
-The Relay CLI is pinned as a project-local development dependency. After `npm ci`, use `./node_modules/.bin/relay --help`. A staging agent named `medical_bill_guardian` was created through this CLI; its token is stored only in the ignored local `.env` and Relay's private CLI profile. Agent creation alone does not send messages or enable live mode.
+- Worker: `medical-bill-guardian`, [deployment](https://medical-bill-guardian.nipunsaini123456.workers.dev)
+- SpacetimeDB: `medical-bill-guardian-email` on `maincloud.spacetimedb.com`
+- Inbound route: `ai@nipunsaini.com`, configured in `wrangler.jsonc`
 
-For this checkout, a synthetic Nessie customer, account, University Hospital merchant, and $4,820 purchase have been created and verified through the sandbox read endpoints. Their IDs and key remain in the ignored local `.env`; a fresh clone must supply its own sandbox credentials and records. The FinchNode sandbox key was validated, but its synthetic Connect sessions are still reporting `syncing` and have not issued an app-scoped subject. The public FinchNode demo record was used only to validate the adapter's normalized field mapping. These separate synthetic sources do not establish that the FinchNode patient had the University Hospital visit shown in the local mock story.
+Set Worker secrets with `wrangler secret put SPACETIME_OWNER_TOKEN` and `wrangler secret put RESEND_API_KEY`; the first must belong to the database publisher. Nessie sandbox credentials are configured on this deployment. FinchNode has no consented subject yet, so a discovered Nessie case will not receive invented clinical evidence. Build the browser for the target database using the `VITE_` settings in `.env.local`. `EMAIL_SEND_ENABLED` defaults to `false` in `wrangler.jsonc`; enable it only when the sending key, test contact, and abuse controls have been verified. Never commit `.env`, `.env.local`, `.dev.vars`, or patient data.
 
-## API
+The [Cloudflare email handler](https://developers.cloudflare.com/email-service/api/route-emails/email-handler/), [routing address configuration](https://developers.cloudflare.com/email-service/configuration/email-routing-addresses/), [Resend send API](https://resend.com/docs/api-reference/emails/send-email), and [SpacetimeDB HTTP API](https://spacetimedb.com/docs/http/database/) are the integration contracts. `docs/plans/2026-10-03-unified-integration.md` records the branch merge decisions.
 
-`GET /api/transactions`, `POST /api/transactions/scan`, `GET|POST /api/cases`, `GET /api/cases/:id`, `POST /api/cases/:id/run`, `POST /api/cases/:id/analyze`, `POST /api/cases/:id/request-review`, `POST /api/cases/:id/notify`, and read-only medical-record, communication, and timeline routes under `/api/cases/:id/`. `analyze` returns `202` while the requested statement is pending.
+## Scope and safety
+
+All seeded data is synthetic. The app does not implement real patient login, a consent grant flow, encrypted medical storage, general hospital PDF parsing, or evidence-backed confirmation of a real billing correction. Keep real patient records and real hospital recipients out of this demo deployment. Relay and Photon reference code from the earlier branch is retained only for historical context; email is the active communication path.
