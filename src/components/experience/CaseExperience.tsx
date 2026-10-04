@@ -10,6 +10,7 @@ import { PriceCatalog } from "../PriceCatalog";
 import { StatementInbox } from "../StatementInbox";
 import { CaseStage } from "./CaseStage";
 import { ReviewConversation } from "./ReviewConversation";
+import { RecordsPanel } from "./RecordsPanel";
 import { caseViewModel, type ExperienceBeat } from "./view-model";
 import { useCaseSession } from "./useCaseSession";
 
@@ -78,6 +79,7 @@ export function CaseExperience({ id, demo }: { id: string; demo: boolean }) {
       </section>
 
       <section className="gx-evidence-detail" aria-live="polite">{selectedFinding ? <><div><span className="gx-kicker">SELECTED EVIDENCE</span><h2>{selectedItem?.description ?? selectedFinding.description}</h2><p>{selectedRecords.length ? selectedRecords.map((record) => `${record.description} · ${record.date}`).join(" · ") : "No corresponding service was found in the available records."}</p>{selectedRecords.length > 0 && <div className="gx-source-list">{selectedRecords.map((record) => <span key={record.id}><FileCheck2 size={12}/>{record.type} record · {record.id}</span>)}</div>}</div><div className="gx-detail-verdict"><span>Clinical review</span><strong>{findingLabel(selectedFinding)}</strong><small>Price review: {selectedFinding.pricingStatus === "REVIEW" ? "Review recommended" : selectedFinding.pricingStatus === "ASSESSED" ? "Assessed" : "Not assessed"}</small></div></> : <><div><span className="gx-kicker">CASE STATUS</span><h2>Evidence appears after the statement arrives.</h2></div></>}</section>
+      <RecordsPanel caseData={caseData} />
       <button className="gx-details-toggle" onClick={() => setDetailsOpen((open) => !open)}>What did Guardian check? <ChevronDown size={17} className={detailsOpen ? "open" : ""}/></button>
       {detailsOpen && <div className="gx-details"><InsuranceReview caseData={caseData} onUpdated={() => window.location.reload()} /><PriceCatalog /><CaseActivity auditLog={caseData.auditLog} communications={caseData.communications}/></div>}
       <footer className="gx-footer"><span><ShieldCheck size={15}/> Missing evidence means “ask,” not “invalid.”</span>{demo && <button onClick={() => void restart()}><RotateCcw size={14}/> Restart synthetic case</button>}</footer>

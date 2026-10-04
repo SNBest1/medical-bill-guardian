@@ -31,7 +31,8 @@ export async function investigateCase(current: MedicalBillCase, medical: Medical
   const next = structuredClone(current);
   next.status = "FETCHING_RECORDS";
   next.medicalRecords = await medical.getMedicalRecords(next.transaction);
-  record(next, "FETCH_RECORDS", "getMedicalRecords", next.transaction.date, `${next.medicalRecords.length} records`, "Medical records retrieved", `${next.medicalRecords.length} relevant records found near the payment date`, "Medical record");
+  if (medical.sourceLabel) next.recordSource = { label: medical.sourceLabel, live: false };
+  record(next, "FETCH_RECORDS", "getMedicalRecords", next.transaction.date, medical.sourceLabel ? `${next.medicalRecords.length} records. ${medical.sourceLabel}` : `${next.medicalRecords.length} records`, "Medical records retrieved", medical.sourceLabel ? `${next.medicalRecords.length} records. ${medical.sourceLabel}` : `${next.medicalRecords.length} relevant records found near the payment date`, "Medical record");
   const encounter = matchEncounter(next.transaction, next.medicalRecords);
   if (encounter) record(next, "MATCH_ENCOUNTER", "matchEncounter", next.transaction.merchant, encounter.id, "Medical encounter located", `${encounter.description} · ${encounter.date}`, "Medical record");
   next.status = "REQUESTING_BILL";

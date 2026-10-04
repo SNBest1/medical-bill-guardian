@@ -1,8 +1,8 @@
 import type { MedicalRecord, Transaction } from "../../types/domain";
 import type { MedicalRecordProvider } from "./provider";
 
-type FinchEntry = { id?: string; name?: string; description?: string; title?: string; type?: string; date?: string; startDate?: string; createdDate?: string; issuedDate?: string; effectiveDate?: string; sourceName?: string };
-type FinchSnapshot = { data?: Record<string, FinchEntry[] | undefined> };
+type FinchEntry = { id?: string; name?: string; description?: string; title?: string; type?: string; date?: string; startDate?: string; createdDate?: string; issuedDate?: string; effectiveDate?: string; sourceName?: string; category?: string };
+export type FinchSnapshot = { data?: Record<string, FinchEntry[] | undefined> };
 
 /** The consented subject is missing or not yet resolved from a completed Connect session. */
 export class FinchNodeConfigError extends Error {}
@@ -13,8 +13,10 @@ const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9 ]/g, 
 
 /** Converts consent-filtered FinchNode records into only the clinical evidence needed for matching. Claims are never included: they are billing artifacts, not proof of care. */
 export function normalizeFinchRecords(snapshot: FinchSnapshot): MedicalRecord[] {
-  const categories: Array<[string, MedicalRecord["type"]]> = [["encounters", "encounter"], ["medications", "medication"], ["medicationAdministrations", "medication"], ["labs", "lab"], ["diagnosticReports", "document"], ["documents", "document"]];
-  return categories.flatMap(([category, type]) => (snapshot.data?.[category] ?? []).flatMap((entry) => {
+  const categories: Array<[string, MedicalRecord["type"]]> = [["encounters", "encounter"], ["medications", "medication"], ["medicationAdministrations", "medication"], ["labs", "lab"], ["diagnosticReports", "document"], ["documents", "document"], ["procedures", "procedure"]];
+  return categories.flatMap(([category, defaultType]) => (snapshot.data?.[category] ?? []).flatMap((entry) => {
+    // A diagnostic report that FinchNode categorizes as imaging/radiology is imaging evidence, not a generic document.
+    const type: MedicalRecord["type"] = category === "diagnosticReports" && /^(imaging|radiology)$/i.test(entry.category ?? "") ? "imaging" : defaultType;
     const date = (entry.date || entry.startDate || entry.effectiveDate || entry.createdDate || entry.issuedDate || "").slice(0, 10);
     const description = entry.description || entry.name || entry.title || (type === "encounter" ? entry.type : undefined);
     if (!entry.id || !description || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return [];
