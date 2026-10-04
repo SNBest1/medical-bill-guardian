@@ -116,7 +116,7 @@ export const request_itemized_bill_email = spacetimedb.reducer({ caseId: t.u64()
     for (const record of DEMO_RECORDS) ctx.db.medicalRecord.insert({ id: 0n, caseId, owner: row.owner, ...record });
     logStep(ctx, row, { action: "FETCH_RECORDS", tool: "mockMedicalRecords", input: row.paidOn, output: `${DEMO_RECORDS.length} synthetic records`, title: "Synthetic medical records loaded", detail: "Demo records only; no live clinical match is claimed", source: "Mock medical record" });
   }
-  ctx.db.communication.insert({ id: 0n, caseId, owner: row.owner, kind: "EMAIL_ITEMIZED_BILL_REQUEST", at: ctx.timestamp, status: "PENDING", transcript: `Request an itemized statement from ${row.merchant} billing, including service dates, codes, charges, insurance adjustments, and patient responsibility.`, result: "Authorized; waiting for email delivery", messageId: undefined });
+  ctx.db.communication.insert({ id: 0n, caseId, owner: row.owner, kind: "EMAIL_ITEMIZED_BILL_REQUEST", at: ctx.timestamp, status: "PENDING", transcript: `Request an itemized statement from the configured billing contact for the ${row.merchant} case, including service dates, codes, charges, insurance adjustments, and patient responsibility.`, result: "Authorized; waiting for email delivery", messageId: undefined });
   logStep(ctx, row, { action: "AUTHORIZE_BILL_EMAIL", tool: "requestItemizedBillEmail", input: row.merchant, output: "Email authorized", title: "You authorized an itemized bill request", detail: "Waiting for email delivery", source: "You" });
   setStatus(ctx, row, "WAITING_FOR_BILL");
 });
