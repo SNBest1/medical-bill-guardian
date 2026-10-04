@@ -65,7 +65,7 @@ export const maskPhone = (phone: string) => phone.length >= 4 ? `ending ${phone.
 
 const cap = (value: string) => value.length > MAX_VARIABLE_LENGTH ? value.slice(0, MAX_VARIABLE_LENGTH) : value;
 
-/** "+14156057073" -> "+1; 4 1 5; 6 0 5; 7 0 7 3", the grouping Fish uses for system.caller_number_spoken. */
+/** "+15555550100" -> "+1; 5 5 5; 5 5 5; 0 1 0 0", the grouping Fish uses for system.caller_number_spoken. */
 export function spokenNumber(e164: string): string {
   const digits = e164.replace(/\D/g, "");
   const spaced = (value: string) => value.split("").join(" ");

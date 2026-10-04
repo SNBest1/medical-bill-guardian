@@ -14,7 +14,7 @@ One published Fish agent serves Morgan, Harriet, and Theo (FinchNode's synthetic
 | `payment_date` | July 18th | Payment date, ready to speak |
 | `service_date` | July 18th | Visit date, ready to speak |
 | `guardian_line` | an E.164 number | The line the hospital should text the bill link to (`SPECTRUM_HOSPITAL_ASSIGNED_LINE`) |
-| `guardian_line_spoken` | `+1; 4 1 5; 6 0 5; 7 0 7 3` style | Same number grouped for speech |
+| `guardian_line_spoken` | `+1; 5 5 5; 5 5 5; 0 1 0 0` style | Same number grouped for speech |
 
 The invoice number and flagged charge are not sent: they are unknown until the bill arrives.
 

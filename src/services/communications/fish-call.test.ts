@@ -34,7 +34,7 @@ describe("dynamic variables", () => {
     expect(spokenDate("2026-09-02")).toBe("September 2nd");
     expect(spokenDate("2026-09-13")).toBe("September 13th");
     expect(spokenDate("2026-09-23")).toBe("September 23rd");
-    expect(spokenNumber("+14156057073")).toBe("+1; 4 1 5; 6 0 5; 7 0 7 3");
+    expect(spokenNumber("+15555550100")).toBe("+1; 5 5 5; 5 5 5; 0 1 0 0");
   });
   it("rejects an unknown hospital", () => {
     expect(() => buildDynamicVariables("Nowhere Clinic", config)).toThrow();
