@@ -3,6 +3,19 @@ import type { CaseStatus, Finding, MedicalBillCase } from "../types/domain";
 export type DemoStage = "detect" | "retrieve" | "reconcile" | "decide" | "complete";
 export type CaseNumbers = { original: number; corrected: number | null; adjustment: number };
 
+export function formatActionError(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== "object") return fallback;
+  const error = "error" in payload && typeof payload.error === "string" ? payload.error : fallback;
+  const upstreamStatus = "upstreamStatus" in payload && typeof payload.upstreamStatus === "number" ? payload.upstreamStatus : null;
+  const responseBody = "responseBody" in payload && typeof payload.responseBody === "string" ? payload.responseBody : null;
+
+  if (upstreamStatus !== null && responseBody !== null) {
+    return `${error} (HTTP ${upstreamStatus}): ${responseBody}`;
+  }
+
+  return error;
+}
+
 export function getDemoStage(status: CaseStatus): DemoStage {
   if (status === "DETECTED") return "detect";
   if (["FETCHING_RECORDS", "REQUESTING_BILL", "WAITING_FOR_BILL"].includes(status)) return "retrieve";
@@ -26,6 +39,24 @@ export function getStatusCopy(status: CaseStatus) {
     FAILED: "Investigation needs attention",
   };
   return copy[status];
+}
+
+export function getItemizedBillRequestCopy(status: CaseStatus): { heading: string; detail: string } | null {
+  if (status === "REQUESTING_BILL") {
+    return {
+      heading: "Call hospital billing for the itemized statement?",
+      detail: "Your authorization lets the AI agent call the configured consenting demo recipient. No real patient information should be shared.",
+    };
+  }
+
+  if (status === "WAITING_FOR_BILL") {
+    return {
+      heading: "Call queued. Preparing the demo statement.",
+      detail: "The statement used next is a synthetic fixture prepared by the demo—not a document collected by the call.",
+    };
+  }
+
+  return null;
 }
 
 export function getCaseNumbers(caseData: MedicalBillCase): CaseNumbers {
