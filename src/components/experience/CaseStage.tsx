@@ -13,16 +13,17 @@ function makeDocumentTexture(caseData: MedicalBillCase, mode: "bill" | "correcti
   const canvas = document.createElement("canvas"); canvas.width = 900; canvas.height = 1180;
   const context = canvas.getContext("2d")!;
   context.fillStyle = "#F2F4F5"; context.fillRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = "#182631"; context.font = "700 31px Arial"; context.fillText("UNIVERSITY HOSPITAL", 64, 82);
+  context.fillStyle = "#182631"; context.font = "700 31px Arial"; context.fillText(caseData.provider.name.toUpperCase(), 64, 82);
   context.fillStyle = "#6B7A86"; context.font = "21px monospace"; context.fillText(mode === "bill" ? "ITEMIZED STATEMENT · UH-48291" : "WRITTEN CORRECTION · UH-48291", 64, 124);
   context.strokeStyle = "#C8D0D5"; context.beginPath(); context.moveTo(64, 160); context.lineTo(836, 160); context.stroke();
   const items = caseData.bill?.items ?? [];
+  const removed = caseData.resolution && caseData.resolution.adjustment > 0 ? caseData.findings.find((finding) => finding.action === "REQUEST_REVIEW")?.description : undefined;
   items.forEach((item, index) => {
     const y = 245 + index * 105;
     context.fillStyle = "#182631"; context.font = "600 25px Arial"; context.fillText(item.description, 64, y);
     context.textAlign = "right"; context.font = "700 27px Arial";
-    context.fillStyle = mode === "correction" && item.description === "Specialist consultation" ? "#A55769" : "#182631";
-    context.fillText(mode === "correction" && item.description === "Specialist consultation" ? "REMOVED" : money(item.amount), 836, y);
+    context.fillStyle = mode === "correction" && item.description === removed ? "#A55769" : "#182631";
+    context.fillText(mode === "correction" && item.description === removed ? "REMOVED" : money(item.amount), 836, y);
     context.textAlign = "left"; context.strokeStyle = "#D6DDE1"; context.beginPath(); context.moveTo(64, y + 30); context.lineTo(836, y + 30); context.stroke();
   });
   const total = mode === "correction" ? caseData.resolution?.correctedTotal ?? caseData.transaction.amount : caseData.transaction.amount;
@@ -77,7 +78,7 @@ export function CaseStage({ caseData, beat, selectedId }: { caseData: MedicalBil
   return <div className="gx-stage" aria-label="Visual model of the current bill review">
     <div className="gx-stage-light" aria-hidden="true"/>
     {webgl && <div className="gx-stage-canvas" ref={mount} aria-hidden="true"/>}
-    {!webgl && <div className="gx-stage-fallback"><ReceiptText size={48}/><strong>{money(caseData.resolution?.correctedTotal ?? caseData.transaction.amount)}</strong><span>{beat === "outcome" ? "Corrected statement" : "University Hospital statement"}</span></div>}
+    {!webgl && <div className="gx-stage-fallback"><ReceiptText size={48}/><strong>{money(caseData.resolution?.correctedTotal ?? caseData.transaction.amount)}</strong><span>{beat === "outcome" ? "Corrected statement" : `${caseData.provider.name} statement`}</span></div>}
     <div className="gx-stage-label">{beat === "outcome" ? <FileCheck2 size={15}/> : beat === "evidence" || beat === "conversation" ? <FileQuestion size={15}/> : <ReceiptText size={15}/>}<span>{beat === "outcome" ? "Provider-confirmed correction" : beat === "evidence" || beat === "conversation" ? "Evidence review" : "Paid hospital bill"}</span></div>
   </div>;
 }
