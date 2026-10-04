@@ -2,6 +2,7 @@ import type { Communication, Finding, Resolution } from "../../types/domain";
 
 export interface ItemizedBillRequestContext {
   caseId: string;
+  attemptId: string;
   providerName: string;
 }
 

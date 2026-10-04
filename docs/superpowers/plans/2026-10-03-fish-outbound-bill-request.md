@@ -36,7 +36,7 @@
 - Modify: `.env.example`
 
 **Interfaces:**
-- Produces: `ItemizedBillRequestContext = { caseId: string; providerName: string }`.
+- Produces: `ItemizedBillRequestContext = { caseId: string; attemptId: string; providerName: string }`.
 - Produces: `CommunicationProvider.requestItemizedBill(context: ItemizedBillRequestContext): Promise<Communication>`.
 - Produces: `FishDemoCommunicationProvider` implementing `CommunicationProvider`.
 - Produces: `FishCallError` with public `status: number` and `responseBody: string`.
@@ -44,7 +44,7 @@
 
 - [ ] **Step 1: Write failing adapter tests**
 
-Create `fish-demo.test.ts` with a fake `fetch` and explicit configuration. Assert that `requestItemizedBill({ caseId: "CASE-4821", providerName: "University Hospital" })` sends:
+Create `fish-demo.test.ts` with a fake `fetch` and explicit configuration. Assert that `requestItemizedBill({ caseId: "CASE-4821", attemptId: "run-a", providerName: "University Hospital" })` sends:
 
 ```ts
 expect(fetcher).toHaveBeenCalledWith(
@@ -83,6 +83,7 @@ In `provider.ts`, add:
 ```ts
 export interface ItemizedBillRequestContext {
   caseId: string;
+  attemptId: string;
   providerName: string;
 }
 
@@ -170,7 +171,7 @@ git commit -m "feat: add Fish demo communication adapter"
 - Modify: `src/services/agent/orchestrator.test.ts`
 
 **Interfaces:**
-- Consumes: `CommunicationProvider.requestItemizedBill({ caseId, providerName })` from Task 1.
+- Consumes: `CommunicationProvider.requestItemizedBill({ caseId, attemptId, providerName })` from Task 1.
 - Produces: `investigateCase(current, medical)` that stops at `REQUESTING_BILL`.
 - Produces: `requestItemizedBill(current, communications, authorized): Promise<MedicalBillCase>`.
 
@@ -389,18 +390,18 @@ Expected: clean formatting, only scoped changes, and no `.env`, database, API ke
 - Modify: `src/services/communications/fish-demo.test.ts`
 
 **Interfaces:**
-- Produces: `fishCallIdempotencyKey(caseId: string, toNumber: string): string`.
+- Produces: `fishCallIdempotencyKey(caseId: string, attemptId: string, toNumber: string): string`.
 - Consumes: Node's built-in `createHash` from `node:crypto`; no new dependency.
 
 - [ ] **Step 1: Add failing idempotency tests**
 
-Add assertions that two calls for `CASE-4821` and the same normalized destination send the same `Idempotency-Key`, while changing only the destination sends a different key. Assert that neither full destination nor its final four digits occur in either key.
+Add assertions that two calls in one run for `CASE-4821` and the same normalized destination send the same `Idempotency-Key`, while changing the persisted run ID or destination sends a different key. Assert that neither full destination nor its final four digits occur in any key.
 
 ```ts
-expect(fishCallIdempotencyKey("CASE-4821", "+13135550199"))
-  .toBe(fishCallIdempotencyKey("CASE-4821", "+13135550199"));
-expect(fishCallIdempotencyKey("CASE-4821", "+13135550199"))
-  .not.toBe(fishCallIdempotencyKey("CASE-4821", "+13135558688"));
+expect(fishCallIdempotencyKey("CASE-4821", "run-a", "+13135550199"))
+  .toBe(fishCallIdempotencyKey("CASE-4821", "run-a", "+13135550199"));
+expect(fishCallIdempotencyKey("CASE-4821", "run-a", "+13135550199"))
+  .not.toBe(fishCallIdempotencyKey("CASE-4821", "run-b", "+13135550199"));
 ```
 
 - [ ] **Step 2: Run the focused test and verify failure**
@@ -416,8 +417,8 @@ Create the key from a normalized E.164 destination and a 16-character hexadecima
 ```ts
 import { createHash } from "node:crypto";
 
-export function fishCallIdempotencyKey(caseId: string, toNumber: string) {
-  const destinationFingerprint = createHash("sha256").update(toNumber.trim()).digest("hex").slice(0, 16);
+export function fishCallIdempotencyKey(caseId: string, attemptId: string, toNumber: string) {
+  const destinationFingerprint = createHash("sha256").update(`${attemptId}\0${toNumber.trim()}`).digest("hex").slice(0, 16);
   return `medical-bill-guardian:${caseId}:request-itemized-bill:${destinationFingerprint}`;
 }
 ```

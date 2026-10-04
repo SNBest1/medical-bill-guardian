@@ -38,7 +38,7 @@ export async function requestItemizedBill(current: MedicalBillCase, communicatio
   if (current.status !== "REQUESTING_BILL") throw new Error("Case is not ready to request an itemized bill");
   if (current.communications.some((item) => item.type === "ITEMIZED_BILL_REQUEST")) throw new Error("An itemized bill request already exists");
   const next = structuredClone(current);
-  const request = await communications.requestItemizedBill({ caseId: next.id, providerName: next.provider.name });
+  const request = await communications.requestItemizedBill({ caseId: next.id, attemptId: next.auditLog[0].id, providerName: next.provider.name });
   next.communications.push(request);
   record(next, "REQUEST_BILL", "requestItemizedBill", next.provider.name, "Call queued", "Hospital call queued", "The authorized request for an itemized bill was queued; the statement has not been received yet", "Hospital billing");
   next.status = "WAITING_FOR_BILL";

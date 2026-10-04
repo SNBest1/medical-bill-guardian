@@ -58,7 +58,7 @@ describe("case workflow", () => {
   it("rejects a duplicate itemized-bill request", async () => {
     const provider = new MockCommunicationProvider();
     const ready = await investigateCase(createCase(demoTransaction), new MockMedicalRecordProvider());
-    ready.communications.push(await provider.requestItemizedBill({ caseId: ready.id, providerName: ready.provider.name }));
+    ready.communications.push(await provider.requestItemizedBill({ caseId: ready.id, attemptId: ready.auditLog[0].id, providerName: ready.provider.name }));
     await expect(requestItemizedBill(ready, provider, true)).rejects.toThrow(/already exists/i);
   });
 

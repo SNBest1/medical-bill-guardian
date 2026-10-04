@@ -60,6 +60,7 @@ describe("POST /api/cases/[id]/request-bill", () => {
     expect(result.status).toBe("WAITING_FOR_BILL");
     expect(mocks.requestItemizedBill).toHaveBeenCalledWith({
       caseId: "CASE-4821",
+      attemptId: current.auditLog[0].id,
       providerName: "University Hospital",
     });
     expect(mocks.save).toHaveBeenCalledOnce();

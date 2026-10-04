@@ -6,8 +6,8 @@ import type { CommunicationProvider, ItemizedBillRequestContext } from "./provid
 const FISH_CALL_URL = "https://api.fish.audio/v1/agent/phone-calls";
 const E164_NUMBER = /^\+[1-9]\d{7,14}$/;
 
-export function fishCallIdempotencyKey(caseId: string, toNumber: string) {
-  const destinationFingerprint = createHash("sha256").update(toNumber.trim()).digest("hex").slice(0, 16);
+export function fishCallIdempotencyKey(caseId: string, attemptId: string, toNumber: string) {
+  const destinationFingerprint = createHash("sha256").update(`${attemptId}\0${toNumber.trim()}`).digest("hex").slice(0, 16);
   return `medical-bill-guardian:${caseId}:request-itemized-bill:${destinationFingerprint}`;
 }
 
@@ -57,7 +57,7 @@ export class FishDemoCommunicationProvider implements CommunicationProvider {
     private readonly fallback = new MockCommunicationProvider(),
   ) {}
 
-  async requestItemizedBill({ caseId, providerName }: ItemizedBillRequestContext): Promise<Communication> {
+  async requestItemizedBill({ caseId, attemptId, providerName }: ItemizedBillRequestContext): Promise<Communication> {
     const missing = missingConfig(this.config);
     if (missing.length) throw new Error(`Missing Fish Audio configuration: ${missing.join(", ")}`);
     if (!E164_NUMBER.test(this.config.toNumber)) {
@@ -71,7 +71,7 @@ export class FishDemoCommunicationProvider implements CommunicationProvider {
         headers: {
           Authorization: `Bearer ${this.config.apiKey}`,
           "Content-Type": "application/json",
-          "Idempotency-Key": fishCallIdempotencyKey(caseId, this.config.toNumber),
+          "Idempotency-Key": fishCallIdempotencyKey(caseId, attemptId, this.config.toNumber),
         },
         body: JSON.stringify({
           agent_id: this.config.agentId,
