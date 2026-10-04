@@ -14,6 +14,8 @@ export interface CaseViewModel {
   /** Records are in and a real hospital call is waiting for the user's approval. */
   awaitingCallAuth: boolean;
   canReview: boolean;
+  /** The review call is live and the case is waiting for hospital billing's answer. */
+  reviewInProgress: boolean;
   isWaiting: boolean;
   /** A hospital-texted PDF is being read right now. */
   isReading: boolean;
@@ -28,7 +30,9 @@ export function caseViewModel(caseData: MedicalBillCase): CaseViewModel {
     ? "outcome"
     : isReading
       ? "reading"
-      : caseData.status === "REVIEW_REQUIRED"
+      : caseData.status === "WAITING_FOR_PROVIDER"
+        ? "conversation"
+        : caseData.status === "REVIEW_REQUIRED"
         ? "evidence"
         : caseData.status === "DETECTED"
           ? "bill"
@@ -44,6 +48,7 @@ export function caseViewModel(caseData: MedicalBillCase): CaseViewModel {
     canCollect: caseData.status === "DETECTED",
     awaitingCallAuth: caseData.status === "REQUESTING_BILL",
     canReview: caseData.status === "REVIEW_REQUIRED",
+    reviewInProgress: caseData.status === "WAITING_FOR_PROVIDER",
     isWaiting: caseData.status === "WAITING_FOR_BILL",
     isReading,
     isComplete,

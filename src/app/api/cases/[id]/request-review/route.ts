@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStore } from "@/lib/db";
 import { sendProgressUpdate } from "@/services/agent/progress-updates";
 import { communicationProvider } from "@/lib/providers";
+import { MockCommunicationProvider } from "@/services/communications/mock";
 import { reviewCase, notifyCase, scenarioIdOf } from "@/services/agent/orchestrator";
 import { fishConfigFromEnv, fishProblems, maskPhone } from "@/services/communications/fish-call";
 import { buildReviewVariables, reviewBrief } from "@/services/communications/fish-review";
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   const store = getStore();
   const id = (await context.params).id;
   if (!store.get(id)) return NextResponse.json({ error: "Case not found" }, { status: 404 });
-  const body = await request.json().catch(() => ({})) as { authorized?: boolean };
+  const body = await request.json().catch(() => ({})) as { authorized?: boolean; rehearsed?: boolean };
   if (body.authorized !== true) return NextResponse.json({ error: "User authorization is required" }, { status: 403 });
   const token = store.acquireOperation(id);
   if (!token) return NextResponse.json({ error: "A case operation is active or awaiting recovery. Review its outcome before retrying." }, { status: 409 });
@@ -34,7 +35,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       store.releaseOperation(id, token);
       return NextResponse.json(current);
     }
-    const provider = communicationProvider();
+    // "rehearsed" is the explicit scripted replay: it never rings a phone.
+    const provider = body.rehearsed === true ? new MockCommunicationProvider(Number.POSITIVE_INFINITY) : communicationProvider();
     let reviewed = current;
     if (current.status !== "RESOLVED") {
       if (current.status !== "REVIEW_REQUIRED" || !current.bill) throw new Error("Case is not ready for billing review");
