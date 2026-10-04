@@ -11,6 +11,8 @@ export interface CaseViewModel {
   questionFinding?: Finding;
   supportedCount: number;
   canCollect: boolean;
+  /** Records are in and a real hospital call is waiting for the user's approval. */
+  awaitingCallAuth: boolean;
   canReview: boolean;
   isWaiting: boolean;
   /** A hospital-texted PDF is being read right now. */
@@ -40,6 +42,7 @@ export function caseViewModel(caseData: MedicalBillCase): CaseViewModel {
     questionFinding,
     supportedCount: caseData.findings.filter((finding) => finding.clinicalStatus === "SUPPORTED").length,
     canCollect: caseData.status === "DETECTED",
+    awaitingCallAuth: caseData.status === "REQUESTING_BILL",
     canReview: caseData.status === "REVIEW_REQUIRED",
     isWaiting: caseData.status === "WAITING_FOR_BILL",
     isReading,

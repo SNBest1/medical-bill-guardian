@@ -65,3 +65,27 @@
 @media(prefers-reduced-motion:reduce){.gx-call-orb>span,.gx-wave i,.gx-scan-line,.gx-read li,.gx-scan-paper li{animation:none}.gx-call-orb>span{opacity:.35;transform:none}.gx-call-orb .r2{transform:scale(1.25);opacity:.2}.gx-call-orb .r3{transform:scale(1.5);opacity:.1}.gx-wave i{height:16px;opacity:.7}.gx-call-live i,.gx-dots i,.gx-call-lines li.now i,.gx-read li.pending i{animation:none;opacity:1}.gx-scan-paper{transform:none}}
 @media(max-width:980px){.gx-workspace:has(.gx-call) .gx-visual-panel{order:-1;border-top:0;border-bottom:1px solid #2c3b48}}
 .gx-beat-copy .statement-inbox{margin-top:18px;max-width:460px;padding:12px 16px;border:1px solid #2f4150;border-radius:10px;background:#152330;color:#c9d4db}.gx-beat-copy .statement-inbox summary{font-size:12px;color:var(--gx-muted);cursor:pointer}.gx-beat-copy .statement-inbox p,.gx-beat-copy .statement-inbox label{font-size:12px;color:var(--gx-muted)}.gx-beat-copy .statement-inbox textarea{width:100%;background:#0f1a24;color:var(--gx-ink);border:1px solid #435768;border-radius:6px}
+
+/* Authorize hospital call: the checkpoint before a real outbound phone call. */
+.gx-authcall{max-width:520px}
+.gx-authcall h1{font:800 clamp(38px,4.4vw,60px)/1.05 Manrope,sans-serif;letter-spacing:-.06em;margin:18px 0 18px}
+.gx-authcall-lede{font-size:15px;line-height:1.7;color:var(--gx-muted);margin:0 0 22px;max-width:450px}
+.gx-authcall-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin:0 0 20px;border:1px solid #3a4c5a;border-radius:10px;background:#3a4c5a;overflow:hidden}
+.gx-authcall-facts>div{background:#172632;padding:11px 14px;min-width:0}
+.gx-authcall-facts dt{font:700 9px/1.2 monospace;letter-spacing:.14em;text-transform:uppercase;color:#7f93a2;margin:0 0 5px}
+.gx-authcall-facts dd{margin:0;font-size:13px;font-weight:700;color:#e3ebf0;overflow-wrap:anywhere}
+.gx-authcall-brief{margin:0 0 16px;padding:14px 16px;border:1px solid #3a4c5a;border-radius:10px;background:#142230}
+.gx-authcall-brief h2{font:700 10px/1.2 monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--gx-rose);margin:0 0 10px}
+.gx-authcall-brief ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:7px;font-size:13px;line-height:1.55;color:#c9d4db}
+.gx-authcall-muted{margin:0;font-size:12px;color:#7f93a2}
+.gx-authcall-warn{display:flex;align-items:flex-start;gap:10px;margin:0 0 16px;padding:11px 13px;border-radius:8px;border:1px solid #8a6a3a;background:#2c2416;color:#f0dcb4;font-size:12px;line-height:1.55}
+.gx-authcall-warn svg{flex:none;margin-top:2px}
+.gx-authcall-problem{margin:0 0 16px;padding:11px 13px;border-radius:8px;border:1px solid #805462;background:#2f1e24;color:#f3d9df;font-size:12px;line-height:1.55}
+.gx-authcall-problem ul{margin:6px 0 0;padding-left:18px}
+.gx-authcall-error{min-height:0}
+.gx-authcall-error:not(:empty){display:flex;align-items:flex-start;gap:10px;margin:0 0 14px;padding:11px 13px;border-radius:8px;border:1px solid #805462;background:#4d333d;color:#f3d9df;font-size:12px;line-height:1.55}
+.gx-authcall-error svg{flex:none;margin-top:2px}
+.gx-authcall .gx-primary{max-width:100%}
+.gx-authcall .gx-primary:focus-visible{outline:2px solid #fff;outline-offset:3px}
+@media(max-width:560px){.gx-authcall-facts{grid-template-columns:1fr}.gx-authcall .gx-primary{width:100%;justify-content:center}}
+@media(prefers-reduced-motion:reduce){.gx-authcall .gx-primary,.gx-authcall .spin{transition:none}.gx-authcall .spin{animation:none}}
